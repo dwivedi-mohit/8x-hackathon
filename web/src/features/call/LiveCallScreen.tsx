@@ -8,6 +8,7 @@ import { CallVisualizer } from "../../components/CallVisualizer.js";
 import { TimerDisplay } from "../../components/TimerDisplay.js";
 import { CallControls } from "../../components/CallControls.js";
 import { SafetyDisclosure } from "../../components/SafetyDisclosure.js";
+import { VoiceboxService } from "../../services/voice/VoiceboxService.js";
 import { tokens } from "../../styles/tokens.js";
 
 export const LiveCallScreen: React.FC<CallUiProps> = ({
@@ -29,6 +30,37 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
   const muted = controller ? controller.muted : internalMuted;
   const elapsedSeconds = controller ? controller.elapsedSeconds : internalSeconds;
   const errorMessage = controller ? controller.errorMessage : internalError;
+
+  // Speak natural greeting using cloned Voicebox voice model
+  useEffect(() => {
+    const greetingText = `Hello! I am ${persona.name}. I am right here with you.`;
+    const voiceProfile = persona.clonedVoice
+      ? {
+          fundamentalPitchHz: persona.clonedVoice.pitchEstimateHz,
+          pitchShiftFactor: persona.clonedVoice.pitchEstimateHz / 175,
+        }
+      : undefined;
+
+    const timer = setTimeout(() => {
+      VoiceboxService.speakWithVoicebox(
+        greetingText,
+        voiceProfile,
+        () => {
+          if (!controller) setInternalStatus("speaking");
+        },
+        () => {
+          if (!controller) setInternalStatus("listening");
+        }
+      );
+    }, 600);
+
+    return () => {
+      clearTimeout(timer);
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [persona.id]);
 
   // Timer simulation for mock mode
   useEffect(() => {
