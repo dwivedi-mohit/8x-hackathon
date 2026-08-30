@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import { Img2ThreejsConverter } from "../lib/3d/Img2ThreejsEngine.js";
 
 export type ThreeAvatar3DProps = {
   photoUrl?: string;
@@ -51,7 +52,7 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
     scene.fog = new THREE.FogExp2(0xfff8f0, 0.05);
 
     const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
-    camera.position.set(0, 0.2, 3.6);
+    camera.position.set(0, 0.18, 3.6);
 
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
@@ -157,7 +158,7 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
     coreFlare.position.set(0, 0.02, 0);
     floorHUD.add(coreFlare);
 
-    // Light-Golden Inverted Triangle Grid Beam (Beaming up from floor to under the bust)
+    // Light-Golden Inverted Triangle Grid Beam
     const coneWireGeo = new THREE.CylinderGeometry(0.95, 0.16, 0.72, 18, 6, true);
     const coneWireMat = new THREE.MeshBasicMaterial({
       color: 0xfef08a,
@@ -185,171 +186,73 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
     holoField.add(beamMesh);
 
     // =========================================================================
-    // 3. Real 360-Degree Volumetric 3D Humanoid Bust Model
+    // 3. img2threejs Procedural 3D Character Model Mount
     // =========================================================================
     const characterGroup = new THREE.Group();
-    characterGroup.position.set(0, 0.28, 0);
+    characterGroup.position.set(0, 0.22, 0);
     holoField.add(characterGroup);
 
-    // Smooth Alpha-Masked Texture Processor
-    const processImageTexture = (img: HTMLImageElement): THREE.Texture => {
-      const canvas = document.createElement("canvas");
-      canvas.width = 512;
-      canvas.height = 512;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return new THREE.Texture(img);
-
-      // Clean transparent canvas
-      ctx.clearRect(0, 0, 512, 512);
-
-      // Draw soft elliptical vignette mask (cuts out background boxes cleanly!)
-      ctx.save();
-      const grad = ctx.createRadialGradient(256, 256, 160, 256, 256, 250);
-      grad.addColorStop(0, "rgba(0, 0, 0, 1)");
-      grad.addColorStop(0.75, "rgba(0, 0, 0, 1)");
-      grad.addColorStop(1, "rgba(0, 0, 0, 0)");
-
-      ctx.drawImage(img, 0, 0, 512, 512);
-      ctx.globalCompositeOperation = "destination-in";
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 512, 512);
-      ctx.restore();
-
-      const tex = new THREE.CanvasTexture(canvas);
-      tex.colorSpace = THREE.SRGBColorSpace;
-      return tex;
-    };
-
-    // Procedural Fallback Texture
-    const createProceduralTexture = (name: string, startCol: string, endCol: string): THREE.CanvasTexture => {
-      const canvas = document.createElement("canvas");
-      canvas.width = 512;
-      canvas.height = 512;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return new THREE.CanvasTexture(canvas);
-
-      const grad = ctx.createLinearGradient(0, 0, 512, 512);
-      grad.addColorStop(0, startCol);
-      grad.addColorStop(1, endCol);
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 512, 512);
-
-      // Golden Halo Ring
-      ctx.strokeStyle = "#FEF08A";
-      ctx.lineWidth = 8;
-      ctx.beginPath();
-      ctx.arc(256, 256, 200, 0, Math.PI * 2);
-      ctx.stroke();
-
-      ctx.font = "bold 120px system-ui, -apple-system, sans-serif";
-      ctx.fillStyle = "#FFFFFF";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(name.charAt(0).toUpperCase(), 256, 256);
-
-      const tex = new THREE.CanvasTexture(canvas);
-      tex.colorSpace = THREE.SRGBColorSpace;
-      return tex;
-    };
-
-    // Mouth / Jaw vertex arrays for real-time lip sync
     let headPosAttr: THREE.BufferAttribute | null = null;
     let originalHeadPositions: Float32Array | null = null;
     const mouthIndices: number[] = [];
 
-    const build3DHumanoidBust = (faceTexture: THREE.Texture) => {
-      faceTexture.colorSpace = THREE.SRGBColorSpace;
+    // Fallback procedural avatar builder for preset personas
+    const buildFallback3DCharacter = (name: string, startCol: string, endCol: string) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        const grad = ctx.createLinearGradient(0, 0, 512, 512);
+        grad.addColorStop(0, startCol);
+        grad.addColorStop(1, endCol);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 512);
 
-      // --- 3D Cranial Head Geometry (Volumetric 3D Sphere with human proportions) ---
-      const headGeo = new THREE.SphereGeometry(0.72, 48, 48);
-      headGeo.scale(0.88, 1.12, 0.92);
+        ctx.strokeStyle = "#FEF08A";
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.arc(256, 256, 200, 0, Math.PI * 2);
+        ctx.stroke();
 
-      const pos = headGeo.attributes.position as THREE.BufferAttribute;
-      headPosAttr = pos;
-      originalHeadPositions = new Float32Array(pos.array);
-
-      // Locate mouth vertices on front of 3D head (Z > 0.45, Y between -0.32 and -0.05, |X| < 0.25)
-      for (let i = 0; i < pos.count; i++) {
-        const x = pos.getX(i);
-        const y = pos.getY(i);
-        const z = pos.getZ(i);
-        if (z > 0.45 && y > -0.35 && y < -0.02 && Math.abs(x) < 0.25) {
-          mouthIndices.push(i);
-        }
+        ctx.font = "bold 120px system-ui, -apple-system, sans-serif";
+        ctx.fillStyle = "#FFFFFF";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(name.charAt(0).toUpperCase(), 256, 256);
       }
 
-      // Material for 3D Head
-      const headMat = new THREE.MeshStandardMaterial({
-        map: faceTexture,
-        roughness: 0.35,
-        metalness: 0.05,
-        emissive: 0xfef08a,
-        emissiveIntensity: 0.08,
-      });
-      const headMesh = new THREE.Mesh(headGeo, headMat);
-      headMesh.position.set(0, 0.28, 0);
-      characterGroup.add(headMesh);
-
-      // --- 3D Anatomical Neck & Upper Torso Shoulders ---
-      const neckGeo = new THREE.CylinderGeometry(0.32, 0.38, 0.38, 32);
-      const neckMat = new THREE.MeshStandardMaterial({
-        color: 0x6366f1,
-        roughness: 0.4,
-        metalness: 0.1,
-        emissive: 0x4338ca,
-        emissiveIntensity: 0.15,
-      });
-      const neckMesh = new THREE.Mesh(neckGeo, neckMat);
-      neckMesh.position.set(0, -0.36, 0);
-      characterGroup.add(neckMesh);
-
-      // Shoulders & Chest (Curved 3D Torso)
-      const torsoGeo = new THREE.CylinderGeometry(0.95, 1.15, 0.48, 32);
-      torsoGeo.scale(1.2, 1.0, 0.7);
-      const torsoMat = new THREE.MeshStandardMaterial({
-        color: 0x4f46e5,
-        roughness: 0.45,
-        metalness: 0.15,
-        emissive: 0x312e81,
-        emissiveIntensity: 0.2,
-      });
-      const torsoMesh = new THREE.Mesh(torsoGeo, torsoMat);
-      torsoMesh.position.set(0, -0.72, 0);
-      characterGroup.add(torsoMesh);
-
-      // --- Sparse Light Golden Wireframe Accent Contour (6x8 grid) ---
-      const wireGeo = new THREE.SphereGeometry(0.74, 12, 10);
-      wireGeo.scale(0.9, 1.14, 0.94);
-      const wireMat = new THREE.MeshBasicMaterial({
-        color: 0xfef08a,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.32,
-        blending: THREE.AdditiveBlending,
-      });
-      const wireMesh = new THREE.Mesh(wireGeo, wireMat);
-      wireMesh.position.set(0, 0.28, 0);
-      characterGroup.add(wireMesh);
-
-      setLoading(false);
-      onModelReady?.();
+      const img = new Image();
+      img.onload = () => {
+        const result = Img2ThreejsConverter.reconstructCharacterFromImage(img, name);
+        characterGroup.add(result.model);
+        headPosAttr = result.headPosAttr;
+        originalHeadPositions = result.originalHeadPositions;
+        mouthIndices.push(...result.mouthIndices);
+        setLoading(false);
+        onModelReady?.();
+      };
+      img.src = canvas.toDataURL();
     };
 
     if (photoUrl) {
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.onload = () => {
-        const tex = processImageTexture(img);
-        build3DHumanoidBust(tex);
+        const result = Img2ThreejsConverter.reconstructCharacterFromImage(img, personaName);
+        characterGroup.add(result.model);
+        headPosAttr = result.headPosAttr;
+        originalHeadPositions = result.originalHeadPositions;
+        mouthIndices.push(...result.mouthIndices);
+        setLoading(false);
+        onModelReady?.();
       };
       img.onerror = () => {
-        const defaultTex = createProceduralTexture(personaName, gradientStart, gradientEnd);
-        build3DHumanoidBust(defaultTex);
+        buildFallback3DCharacter(personaName, gradientStart, gradientEnd);
       };
       img.src = photoUrl;
     } else {
-      const defaultTex = createProceduralTexture(personaName, gradientStart, gradientEnd);
-      build3DHumanoidBust(defaultTex);
+      buildFallback3DCharacter(personaName, gradientStart, gradientEnd);
     }
 
     // =========================================================================
@@ -457,7 +360,7 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
       // 360-degree rotation with smooth turntable mode and drag inertia
       if (!isDragging) {
         if (autoRotate) {
-          orbitRotY += 0.007; // Smooth 360-degree rotation
+          orbitRotY += 0.007;
         } else {
           velocityY *= 0.92;
           velocityX *= 0.92;
@@ -470,7 +373,7 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
       characterGroup.rotation.x = orbitRotX;
 
       // Gentle levitation float
-      characterGroup.position.y = 0.28 + Math.sin(elapsed * 2.2) * 0.025;
+      characterGroup.position.y = 0.22 + Math.sin(elapsed * 2.2) * 0.025;
       topGlowGroup.position.y = 0.45 + Math.sin(elapsed * 2.2) * 0.025;
 
       // Rotating top orbital rings
