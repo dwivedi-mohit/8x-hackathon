@@ -32,3 +32,5 @@ Success response (`201`):
 ```
 
 Only `maya`, `arjun`, and `luna` are accepted. Persona instructions are server-owned and are never accepted from the browser.
+
+The call route is rate-limited to 10 attempts per IP per minute by default. Override `RATE_LIMIT_WINDOW_MS` and `RATE_LIMIT_MAX_REQUESTS` for local testing if necessary.
