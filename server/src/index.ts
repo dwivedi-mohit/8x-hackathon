@@ -4,6 +4,7 @@ import express from "express";
 import { createRateLimiter } from "./middleware/rate-limit.js";
 import { realtimeRouter } from "./routes/realtime.js";
 import { voiceRouter } from "./routes/voice.js";
+import { trellisRouter } from "./routes/trellis.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
@@ -23,6 +24,7 @@ app.get("/health", (_request, response) => {
 });
 
 app.use("/api/voice", voiceRouter);
+app.use("/api/3d", trellisRouter);
 
 app.use(
   "/api/realtime",

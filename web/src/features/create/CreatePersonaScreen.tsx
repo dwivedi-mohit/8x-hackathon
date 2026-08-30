@@ -71,8 +71,12 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      processPhotoFor3D(url);
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64Url = reader.result as string;
+        processPhotoFor3D(base64Url);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -94,10 +98,21 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
     setExtractionStage("Reading reference audio…");
 
     try {
+      // Convert audio file to persistent Base64 data URL
+      const base64AudioPromise = new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+      const persistentAudioDataUrl = await base64AudioPromise;
+
       const result = await extractVoiceFromMediaFile(file, (stage, percent) => {
         setExtractionStage(stage);
         setExtractionProgress(percent);
       });
+
+      // Save persistent base64 audio data URL
+      result.metadata.audioBlobUrl = persistentAudioDataUrl;
 
       setExtractionStage("Running Voicebox zero-shot speaker embedding…");
       setExtractionProgress(90);

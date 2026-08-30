@@ -51,8 +51,8 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0xfff8f0, 0.05);
 
-    const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
-    camera.position.set(0, 0.02, 3.2);
+    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
+    camera.position.set(0, 0.05, 3.8);
 
     const renderer = new THREE.WebGLRenderer({
       alpha: true,

@@ -38,6 +38,7 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
       ? {
           fundamentalPitchHz: persona.clonedVoice.pitchEstimateHz,
           pitchShiftFactor: persona.clonedVoice.pitchEstimateHz / 175,
+          audioDataUrl: persona.clonedVoice.audioBlobUrl,
         }
       : undefined;
 

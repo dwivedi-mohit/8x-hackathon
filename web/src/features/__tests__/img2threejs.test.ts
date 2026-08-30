@@ -4,7 +4,7 @@ import { Img2ThreejsConverter } from "../../lib/3d/Img2ThreejsEngine.js";
 import { VoiceboxService } from "../../services/voice/VoiceboxService.js";
 
 describe("img2threejs & Voicebox Real Engine Verification", () => {
-  it("verifies Img2ThreejsConverter reconstructs realistic 3D anatomical human head bust", () => {
+  it("verifies Img2ThreejsConverter reconstructs realistic 3D volumetric face bust", () => {
     // Mock image object
     const img = {} as HTMLImageElement;
 
@@ -14,9 +14,12 @@ describe("img2threejs & Voicebox Real Engine Verification", () => {
     expect(result.model).toBeInstanceOf(THREE.Group);
     expect(result.model.name).toBe("Character_Dada Ji");
 
-    // Check anatomical head bust mesh
-    const headMesh = result.model.getObjectByName("anatomicalHeadBust");
-    expect(headMesh).toBeDefined();
+    // Check front face mesh & back hull mesh
+    const frontMesh = result.model.getObjectByName("frontFaceMesh");
+    expect(frontMesh).toBeDefined();
+
+    const backMesh = result.model.getObjectByName("backHullMesh");
+    expect(backMesh).toBeDefined();
 
     // 2. Verify mouth viseme tracking indices exist
     expect(result.mouthIndices).toBeDefined();

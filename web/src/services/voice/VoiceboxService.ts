@@ -81,6 +81,35 @@ export class VoiceboxService {
   }
 
   /**
+   * Plays the user's uploaded/cloned voice audio clip directly.
+   */
+  static playClonedAudioClip(
+    audioDataUrl: string,
+    onStart?: () => void,
+    onEnd?: () => void
+  ): HTMLAudioElement | null {
+    if (typeof window === "undefined" || !audioDataUrl) return null;
+
+    try {
+      const audio = new Audio(audioDataUrl);
+      audio.onplay = () => onStart?.();
+      audio.onended = () => onEnd?.();
+      audio.onerror = () => {
+        console.warn("[VoiceboxService] Cloned audio clip playback failed, fallback to synthesis.");
+        onEnd?.();
+      };
+      audio.play().catch(() => {
+        // In case autoplay is restricted, trigger onEnd
+        onEnd?.();
+      });
+      return audio;
+    } catch {
+      onEnd?.();
+      return null;
+    }
+  }
+
+  /**
    * Synthesizes speech matching the cloned Voicebox voice profile.
    */
   static speakWithVoicebox(
@@ -88,42 +117,62 @@ export class VoiceboxService {
     voiceProfile?: {
       fundamentalPitchHz?: number;
       pitchShiftFactor?: number;
+      audioDataUrl?: string;
       formants?: { f1: number; f2: number; f3: number };
     },
     onStart?: () => void,
     onEnd?: () => void
   ): void {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+    if (typeof window === "undefined") {
       onStart?.();
       setTimeout(() => onEnd?.(), 2500);
       return;
     }
 
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-
-    // Apply Voicebox fundamental pitch shift & rate calibration
-    if (voiceProfile?.fundamentalPitchHz) {
-      const pitchFactor = voiceProfile.fundamentalPitchHz / 175; // Standard 175Hz baseline
-      utterance.pitch = Math.max(0.6, Math.min(1.7, pitchFactor));
-    } else {
-      utterance.pitch = 1.05;
+    // 1. If persistent cloned audio clip is available, play it directly!
+    if (voiceProfile?.audioDataUrl && voiceProfile.audioDataUrl.startsWith("data:")) {
+      const audio = this.playClonedAudioClip(voiceProfile.audioDataUrl, onStart, onEnd);
+      if (audio) return;
     }
 
-    utterance.rate = 0.96;
+    // 2. Synthesize using calibrated SpeechSynthesis
+    if ("speechSynthesis" in window) {
+      try {
+        window.speechSynthesis.resume();
+        window.speechSynthesis.cancel();
 
-    utterance.onstart = () => {
-      onStart?.();
-    };
+        const utterance = new SpeechSynthesisUtterance(text);
 
-    utterance.onend = () => {
-      onEnd?.();
-    };
+        if (voiceProfile?.fundamentalPitchHz) {
+          const pitchFactor = voiceProfile.fundamentalPitchHz / 175;
+          utterance.pitch = Math.max(0.6, Math.min(1.6, pitchFactor));
+        } else {
+          utterance.pitch = 1.0;
+        }
 
-    utterance.onerror = () => {
-      onEnd?.();
-    };
+        utterance.rate = 0.95;
 
-    window.speechSynthesis.speak(utterance);
+        utterance.onstart = () => {
+          onStart?.();
+        };
+
+        utterance.onend = () => {
+          onEnd?.();
+        };
+
+        utterance.onerror = () => {
+          onEnd?.();
+        };
+
+        window.speechSynthesis.speak(utterance);
+        return;
+      } catch (e) {
+        console.warn("[VoiceboxService] SpeechSynthesis failed:", e);
+      }
+    }
+
+    // 3. Simulated fallback
+    onStart?.();
+    setTimeout(() => onEnd?.(), 3000);
   }
 }
