@@ -76,29 +76,29 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
     setPhotoUrl(imageUrl);
     setIsGenerating3D(true);
     setIs3DModelReady(false);
-    setGenerationProgress(15);
-    setGenerationStage("Scanning facial geometry & contours…");
+    setGenerationProgress(18);
+    setGenerationStage("Sculpting facial geometry…");
 
     if (!name && defaultName) {
       setName(defaultName);
     }
 
     setTimeout(() => {
-      setGenerationProgress(45);
-      setGenerationStage("Generating 3D volumetric face mesh…");
-    }, 450);
+      setGenerationProgress(52);
+      setGenerationStage("Generating 3D volumetric mesh…");
+    }, 400);
 
     setTimeout(() => {
-      setGenerationProgress(80);
-      setGenerationStage("Mapping realistic lighting & facial rig…");
-    }, 900);
+      setGenerationProgress(85);
+      setGenerationStage("Calibrating lighting & animation rig…");
+    }, 850);
 
     setTimeout(() => {
       setGenerationProgress(100);
-      setGenerationStage("3D Character Model Generated!");
+      setGenerationStage("3D Character Ready!");
       setIsGenerating3D(false);
       setIs3DModelReady(true);
-    }, 1300);
+    }, 1250);
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,7 +117,7 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
     setCloneError(null);
     setIsExtractingVoice(true);
     setExtractionProgress(15);
-    setExtractionStage("Reading media track…");
+    setExtractionStage("Reading audio track…");
 
     try {
       const result = await extractVoiceFromMediaFile(file, (stage, percent) => {
@@ -171,17 +171,17 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
     const newPersona: Persona = {
       id: customId,
       name: name.trim(),
-      tagline: tagline.trim() || "A custom 3D AI companion",
-      description: `${name} is an interactive 3D AI companion generated from user photo and cloned voice.`,
+      tagline: tagline.trim() || "A thoughtful 3D companion",
+      description: `${name} is a custom 3D companion generated from photo and calibrated voice.`,
       voiceStyle: clonedVoiceResult
         ? `Cloned (${clonedVoiceResult.metadata.isExtractedFromVideo ? "Video Audio" : "Audio"}: ${clonedVoiceResult.metadata.fileName}, ${clonedVoiceResult.metadata.pitchEstimateHz}Hz)`
         : "Gentle & Calming",
-      suggestedPrompt: `Hey ${name}, I'm so glad to see you in 3D. How are you doing today?`,
+      suggestedPrompt: `Hey ${name}, I'm glad to see you in 3D. How are you feeling today?`,
       traits: ["Interactive 3D", "Cloned Voice", "Present"],
       avatarGradient: {
         start: "#A78BFA",
         end: "#F4A261",
-        glow: "rgba(167, 139, 250, 0.4)",
+        glow: "rgba(167, 139, 250, 0.35)",
         ring: "#DDD6FE",
       },
       photoUrl: photoUrl || undefined,
@@ -201,11 +201,11 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
         flexDirection: "column",
         minHeight: "100%",
         flex: 1,
-        backgroundColor: tokens.colors.canvas,
       }}
     >
+      {/* Humanistic Glass Header */}
       <AppHeader
-        title={createdPersona ? "3D Persona Ready!" : "Create 3D Persona"}
+        title={createdPersona ? "Companion Ready" : "Craft Companion"}
         showBack={!createdPersona}
         onBack={() => {
           if (currentStep > 1) {
@@ -217,29 +217,27 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
         rightAction={
           <span
             style={{
-              fontSize: "11px",
-              fontWeight: 700,
+              fontSize: "12px",
+              fontWeight: 600,
               color: tokens.colors.lavenderPrimary,
-              backgroundColor: tokens.colors.surfaceLavenderTint,
-              padding: "4px 10px",
-              borderRadius: tokens.radii.full,
-              border: `1px solid ${tokens.colors.borderLavender}`,
+              backgroundColor: "rgba(100, 65, 211, 0.08)",
+              padding: "4px 12px",
+              borderRadius: "20px",
+              border: "1px solid rgba(100, 65, 211, 0.15)",
             }}
           >
-            {createdPersona ? "✨ 3D Ready" : `Step ${currentStep} of 3`}
+            {createdPersona ? "✨ Ready" : `Step ${currentStep} of 3`}
           </span>
         }
       />
 
-      {/* Progress Line */}
+      {/* Subtle Progress Bar */}
       {!createdPersona && (
         <div
           style={{
             display: "flex",
-            gap: "6px",
-            padding: "8px 20px 4px",
-            backgroundColor: tokens.colors.surface,
-            borderBottom: `1px solid ${tokens.colors.borderSubtle}`,
+            gap: "8px",
+            padding: "8px 24px 6px",
           }}
         >
           {[1, 2, 3].map((stepNum) => (
@@ -247,21 +245,21 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
               key={stepNum}
               style={{
                 flex: 1,
-                height: "4px",
+                height: "3px",
                 borderRadius: "2px",
                 backgroundColor:
-                  stepNum <= currentStep ? tokens.colors.lavenderPrimary : tokens.colors.borderSubtle,
-                transition: "background-color 0.25s ease",
+                  stepNum <= currentStep ? tokens.colors.lavenderPrimary : "rgba(31, 29, 43, 0.08)",
+                transition: "background-color 0.3s ease",
               }}
             />
           ))}
         </div>
       )}
 
-      {/* Main Content Area */}
+      {/* Main Scrollable Body with generous bottom spacing */}
       <div
         style={{
-          padding: `${tokens.spacing.lg} ${tokens.spacing.xl} 32px`,
+          padding: `${tokens.spacing.md} ${tokens.spacing.lg} 130px`,
           display: "flex",
           flexDirection: "column",
           gap: tokens.spacing.lg,
@@ -269,7 +267,7 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
         }}
       >
         {/* ============================================================ */}
-        {/* STEP 1: PHOTO UPLOAD -> 3D MODEL GENERATION */}
+        {/* STEP 1: PHOTO TO 3D CHARACTER */}
         {/* ============================================================ */}
         {currentStep === 1 && (
           <div style={{ display: "flex", flexDirection: "column", gap: tokens.spacing.md }}>
@@ -280,33 +278,35 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
                   fontWeight: 700,
                   color: tokens.colors.lavenderPrimary,
                   textTransform: "uppercase",
-                  letterSpacing: "0.05em",
+                  letterSpacing: "0.06em",
                 }}
               >
-                Step 1: 3D Face Generation
+                Face & Appearance
               </span>
               <h2
                 style={{
-                  fontSize: tokens.typography.headingLarge.fontSize,
+                  fontSize: "22px",
                   fontWeight: 700,
                   color: tokens.colors.textPrimary,
                   marginTop: "2px",
+                  letterSpacing: "-0.02em",
                 }}
               >
-                Upload Photo to Generate 3D Model
+                Bring a friendly face to life
               </h2>
               <p
                 style={{
-                  fontSize: tokens.typography.bodySmall.fontSize,
+                  fontSize: "13px",
                   color: tokens.colors.textSecondary,
                   marginTop: "4px",
+                  lineHeight: "18px",
                 }}
               >
-                Upload any portrait photo. We will generate a responsive, animated 3D character mesh.
+                Upload a portrait or select one below to sculpt an interactive 3D character.
               </p>
             </div>
 
-            {/* 3D Model Viewer or Upload Dropzone */}
+            {/* 3D Model Display or Upload Surface */}
             {photoUrl ? (
               <div
                 style={{
@@ -314,16 +314,18 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
                   flexDirection: "column",
                   alignItems: "center",
                   padding: "16px",
-                  borderRadius: tokens.radii.card,
-                  backgroundColor: tokens.colors.surface,
-                  border: `2px solid ${tokens.colors.borderLavender}`,
-                  boxShadow: tokens.shadows.card,
+                  borderRadius: "28px",
+                  backgroundColor: "rgba(255, 255, 255, 0.72)",
+                  backdropFilter: "blur(20px)",
+                  WebkitBackdropFilter: "blur(20px)",
+                  border: "1px solid rgba(255, 255, 255, 0.9)",
+                  boxShadow: "0 12px 30px rgba(100, 65, 211, 0.08), 0 2px 8px rgba(0, 0, 0, 0.03)",
                   position: "relative",
                 }}
               >
                 <ThreeAvatar3D
                   photoUrl={photoUrl}
-                  size={240}
+                  size={230}
                   scanEffect={isGenerating3D}
                   isSpeaking={is3DModelReady}
                 />
@@ -332,32 +334,32 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
                   <div
                     style={{
                       width: "100%",
-                      marginTop: "12px",
-                      padding: "10px",
-                      borderRadius: tokens.radii.md,
-                      backgroundColor: tokens.colors.surfaceLavenderTint,
+                      marginTop: "10px",
+                      padding: "8px 12px",
+                      borderRadius: "14px",
+                      backgroundColor: "rgba(100, 65, 211, 0.08)",
                       textAlign: "center",
                     }}
                   >
-                    <span style={{ fontSize: "12px", fontWeight: 700, color: tokens.colors.lavenderPrimary }}>
+                    <span style={{ fontSize: "12px", fontWeight: 600, color: tokens.colors.lavenderPrimary }}>
                       ⚡ {generationStage} ({generationProgress}%)
                     </span>
                   </div>
                 )}
 
                 {is3DModelReady && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "8px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "6px" }}>
                     <span
                       style={{
-                        fontSize: "12px",
+                        fontSize: "11px",
                         fontWeight: 700,
                         backgroundColor: "#D1FAE5",
                         color: "#059669",
-                        padding: "4px 12px",
-                        borderRadius: tokens.radii.full,
+                        padding: "3px 10px",
+                        borderRadius: "20px",
                       }}
                     >
-                      ✓ 3D Model Generated & Active
+                      ✓ 3D Model Active
                     </span>
                     <button
                       type="button"
@@ -366,6 +368,9 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
                         fontSize: "12px",
                         color: tokens.colors.lavenderPrimary,
                         fontWeight: 600,
+                        background: "none",
+                        border: 0,
+                        cursor: "pointer",
                         textDecoration: "underline",
                       }}
                     >
@@ -380,25 +385,41 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
                 role="button"
                 tabIndex={0}
                 style={{
-                  border: `2px dashed ${tokens.colors.borderLavender}`,
-                  borderRadius: tokens.radii.card,
-                  padding: "36px 16px",
+                  border: "2px dashed rgba(100, 65, 211, 0.28)",
+                  borderRadius: "24px",
+                  padding: "32px 16px",
                   textAlign: "center",
-                  backgroundColor: tokens.colors.surfaceLavenderTint,
+                  backgroundColor: "rgba(255, 255, 255, 0.5)",
+                  backdropFilter: "blur(16px)",
+                  WebkitBackdropFilter: "blur(16px)",
                   cursor: "pointer",
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
-                  gap: "10px",
+                  gap: "8px",
+                  transition: "all 0.2s ease",
                 }}
               >
-                <span style={{ fontSize: "40px" }}>📸</span>
+                <div
+                  style={{
+                    width: "56px",
+                    height: "56px",
+                    borderRadius: "50%",
+                    backgroundColor: "rgba(100, 65, 211, 0.1)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "26px",
+                  }}
+                >
+                  📸
+                </div>
                 <div>
-                  <h4 style={{ fontSize: "16px", fontWeight: 700, color: tokens.colors.lavenderPrimary }}>
-                    Click to Upload a Portrait Photo
+                  <h4 style={{ fontSize: "15px", fontWeight: 700, color: tokens.colors.textPrimary }}>
+                    Upload a portrait photo
                   </h4>
-                  <p style={{ fontSize: "12px", color: tokens.colors.textSecondary, marginTop: "4px" }}>
-                    JPG, PNG, or WebP. Automatically generates interactive 3D face mesh.
+                  <p style={{ fontSize: "12px", color: tokens.colors.textSecondary, marginTop: "2px" }}>
+                    JPG, PNG, or WebP. Automatically generates 3D character mesh.
                   </p>
                 </div>
               </div>
@@ -412,7 +433,7 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
               style={{ display: "none" }}
             />
 
-            {/* Quick Sample Photos */}
+            {/* Instant Sample Companions */}
             {!photoUrl && (
               <div>
                 <span
@@ -424,7 +445,7 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
                     marginBottom: "8px",
                   }}
                 >
-                  Or try with an instant sample character:
+                  Or pick a sample companion:
                 </span>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
                   {SAMPLE_PORTRAITS.map((sample) => (
@@ -437,23 +458,32 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
                         processPhotoFor3D(sample.url, sample.name);
                       }}
                       style={{
-                        padding: "8px",
-                        borderRadius: tokens.radii.md,
-                        backgroundColor: tokens.colors.surface,
-                        border: `1px solid ${tokens.colors.border}`,
+                        padding: "10px 6px",
+                        borderRadius: "18px",
+                        backgroundColor: "rgba(255, 255, 255, 0.65)",
+                        border: "1px solid rgba(255, 255, 255, 0.8)",
+                        backdropFilter: "blur(12px)",
+                        WebkitBackdropFilter: "blur(12px)",
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
                         gap: "6px",
                         cursor: "pointer",
+                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
                       }}
                     >
                       <img
                         src={sample.url}
                         alt={sample.name}
-                        style={{ width: "44px", height: "44px", borderRadius: "50%", objectFit: "cover" }}
+                        style={{
+                          width: "48px",
+                          height: "48px",
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                          boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+                        }}
                       />
-                      <span style={{ fontSize: "12px", fontWeight: 700, color: tokens.colors.textPrimary }}>
+                      <span style={{ fontSize: "13px", fontWeight: 700, color: tokens.colors.textPrimary }}>
                         {sample.name}
                       </span>
                     </button>
@@ -462,7 +492,7 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
               </div>
             )}
 
-            {/* Character Name Input */}
+            {/* Name Input */}
             <div style={{ marginTop: "4px" }}>
               <label
                 style={{
@@ -473,7 +503,7 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
                   marginBottom: "4px",
                 }}
               >
-                Character Name *
+                Companion's Name *
               </label>
               <input
                 type="text"
@@ -482,13 +512,14 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
                 onChange={(e) => setName(e.target.value)}
                 style={{
                   width: "100%",
-                  padding: "12px 14px",
-                  borderRadius: tokens.radii.md,
-                  border: `1.5px solid ${name ? tokens.colors.lavenderPrimary : tokens.colors.border}`,
+                  padding: "12px 16px",
+                  borderRadius: "16px",
+                  border: "1px solid rgba(31, 29, 43, 0.12)",
                   fontSize: "15px",
                   fontWeight: 600,
-                  backgroundColor: tokens.colors.surface,
+                  backgroundColor: "rgba(255, 255, 255, 0.85)",
                   color: tokens.colors.textPrimary,
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
                 }}
               />
             </div>
@@ -496,7 +527,7 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
         )}
 
         {/* ============================================================ */}
-        {/* STEP 2: VIDEO / AUDIO UPLOAD -> VOICE CLONING */}
+        {/* STEP 2: VIDEO/AUDIO VOICE CLONING */}
         {/* ============================================================ */}
         {currentStep === 2 && (
           <div style={{ display: "flex", flexDirection: "column", gap: tokens.spacing.md }}>
@@ -507,29 +538,31 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
                   fontWeight: 700,
                   color: tokens.colors.lavenderPrimary,
                   textTransform: "uppercase",
-                  letterSpacing: "0.05em",
+                  letterSpacing: "0.06em",
                 }}
               >
-                Step 2: Video/Audio Voice Clone
+                Voice & Presence
               </span>
               <h2
                 style={{
-                  fontSize: tokens.typography.headingLarge.fontSize,
+                  fontSize: "22px",
                   fontWeight: 700,
                   color: tokens.colors.textPrimary,
                   marginTop: "2px",
+                  letterSpacing: "-0.02em",
                 }}
               >
-                Upload Video or Audio to Clone Voice
+                Calibrate {name || "your companion"}'s voice
               </h2>
               <p
                 style={{
-                  fontSize: tokens.typography.bodySmall.fontSize,
+                  fontSize: "13px",
                   color: tokens.colors.textSecondary,
                   marginTop: "4px",
+                  lineHeight: "18px",
                 }}
               >
-                Upload a video clip (MP4/WebM) or audio track. We will extract the voice, calibrate pitch, and clone it for {name || "your persona"}.
+                Drop a video clip or voice note. We will extract the timbre and calibrate the cloned speech model.
               </p>
             </div>
 
@@ -539,15 +572,13 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
               role="button"
               tabIndex={0}
               style={{
-                border: `2px dashed ${
-                  clonedVoiceResult ? tokens.colors.borderPeach : tokens.colors.borderLavender
-                }`,
-                borderRadius: tokens.radii.card,
-                padding: "28px 16px",
+                border: "2px dashed rgba(244, 162, 97, 0.4)",
+                borderRadius: "24px",
+                padding: "30px 16px",
                 textAlign: "center",
-                backgroundColor: clonedVoiceResult
-                  ? tokens.colors.surfacePeachTint
-                  : tokens.colors.surfaceLavenderTint,
+                backgroundColor: clonedVoiceResult ? "rgba(244, 162, 97, 0.1)" : "rgba(255, 255, 255, 0.55)",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
                 cursor: "pointer",
                 display: "flex",
                 flexDirection: "column",
@@ -563,18 +594,29 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
                 style={{ display: "none" }}
               />
 
-              <span style={{ fontSize: "36px" }}>
+              <div
+                style={{
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "50%",
+                  backgroundColor: "rgba(244, 162, 97, 0.15)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "26px",
+                }}
+              >
                 {isExtractingVoice ? "⚡" : clonedVoiceResult ? "🎙️" : "🎬"}
-              </span>
+              </div>
 
               <div>
                 <h4 style={{ fontSize: "15px", fontWeight: 700, color: tokens.colors.textPrimary }}>
                   {clonedVoiceResult
-                    ? "Upload another video/audio file"
-                    : "Select Video (.mp4, .mov, .webm) or Audio (.mp3, .m4a)"}
+                    ? "Upload another video/audio clip"
+                    : "Select Video (.mp4, .mov) or Audio (.mp3, .m4a)"}
                 </h4>
                 <p style={{ fontSize: "12px", color: tokens.colors.textSecondary, marginTop: "2px" }}>
-                  If video is uploaded, the audio track will be extracted and converted automatically.
+                  Video audio tracks are demuxed and calibrated in-browser automatically.
                 </p>
               </div>
             </div>
@@ -583,10 +625,9 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
             {isExtractingVoice && (
               <div
                 style={{
-                  padding: "14px",
-                  borderRadius: tokens.radii.md,
-                  backgroundColor: tokens.colors.surfaceLavenderTint,
-                  border: `1px solid ${tokens.colors.borderLavender}`,
+                  padding: "12px 16px",
+                  borderRadius: "16px",
+                  backgroundColor: "rgba(100, 65, 211, 0.08)",
                   display: "flex",
                   flexDirection: "column",
                   gap: "6px",
@@ -596,7 +637,7 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
                   <span style={{ color: tokens.colors.lavenderPrimary }}>{extractionStage}</span>
                   <span style={{ color: tokens.colors.textSecondary }}>{extractionProgress}%</span>
                 </div>
-                <div style={{ width: "100%", height: "6px", backgroundColor: tokens.colors.borderSubtle, borderRadius: "3px", overflow: "hidden" }}>
+                <div style={{ width: "100%", height: "4px", backgroundColor: "rgba(31,29,43,0.08)", borderRadius: "2px", overflow: "hidden" }}>
                   <div
                     style={{
                       width: `${extractionProgress}%`,
@@ -614,10 +655,12 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
               <div
                 style={{
                   padding: "16px",
-                  borderRadius: tokens.radii.card,
-                  backgroundColor: tokens.colors.surface,
-                  border: `1.5px solid ${tokens.colors.borderPeach}`,
-                  boxShadow: tokens.shadows.card,
+                  borderRadius: "24px",
+                  backgroundColor: "rgba(255, 255, 255, 0.75)",
+                  backdropFilter: "blur(20px)",
+                  WebkitBackdropFilter: "blur(20px)",
+                  border: "1px solid rgba(255, 255, 255, 0.9)",
+                  boxShadow: "0 8px 24px rgba(244, 162, 97, 0.08)",
                   display: "flex",
                   flexDirection: "column",
                   gap: "12px",
@@ -625,12 +668,12 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ fontSize: "22px" }}>
+                    <span style={{ fontSize: "20px" }}>
                       {clonedVoiceResult.metadata.isExtractedFromVideo ? "🎬" : "🎵"}
                     </span>
                     <div>
                       <h4 style={{ fontSize: "14px", fontWeight: 700, color: tokens.colors.textPrimary }}>
-                        {clonedVoiceResult.metadata.isExtractedFromVideo ? "Extracted from Video" : "Audio Sample"}
+                        {clonedVoiceResult.metadata.isExtractedFromVideo ? "Extracted Video Audio" : "Voice Note Sample"}
                       </h4>
                       <span style={{ fontSize: "11px", color: tokens.colors.textTertiary }}>
                         {clonedVoiceResult.metadata.fileName} ({clonedVoiceResult.metadata.durationSeconds}s)
@@ -645,14 +688,14 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
                       backgroundColor: "#D1FAE5",
                       color: "#059669",
                       padding: "3px 8px",
-                      borderRadius: tokens.radii.full,
+                      borderRadius: "20px",
                     }}
                   >
-                    ✓ Cloned & Ready
+                    ✓ Calibrated
                   </span>
                 </div>
 
-                {/* Waveform visualizer */}
+                {/* Waveform */}
                 <div
                   style={{
                     display: "flex",
@@ -660,8 +703,8 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
                     gap: "3px",
                     height: "36px",
                     padding: "4px 8px",
-                    backgroundColor: tokens.colors.canvasMuted,
-                    borderRadius: tokens.radii.md,
+                    backgroundColor: "rgba(31, 29, 43, 0.04)",
+                    borderRadius: "12px",
                   }}
                 >
                   {clonedVoiceResult.waveformData.map((amp, idx) => (
@@ -677,31 +720,7 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
                   ))}
                 </div>
 
-                {/* Metrics */}
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(3, 1fr)",
-                    gap: "6px",
-                    textAlign: "center",
-                    fontSize: "11px",
-                  }}
-                >
-                  <div style={{ padding: "6px", backgroundColor: tokens.colors.canvasMuted, borderRadius: tokens.radii.sm }}>
-                    <span style={{ color: tokens.colors.textTertiary, display: "block" }}>Pitch</span>
-                    <strong>{clonedVoiceResult.metadata.pitchEstimateHz} Hz</strong>
-                  </div>
-                  <div style={{ padding: "6px", backgroundColor: tokens.colors.canvasMuted, borderRadius: tokens.radii.sm }}>
-                    <span style={{ color: tokens.colors.textTertiary, display: "block" }}>Clarity</span>
-                    <strong style={{ color: "#059669" }}>{clonedVoiceResult.metadata.clarityPercent}%</strong>
-                  </div>
-                  <div style={{ padding: "6px", backgroundColor: tokens.colors.canvasMuted, borderRadius: tokens.radii.sm }}>
-                    <span style={{ color: tokens.colors.textTertiary, display: "block" }}>Duration</span>
-                    <strong>{clonedVoiceResult.metadata.durationSeconds}s</strong>
-                  </div>
-                </div>
-
-                {/* Audio Tests */}
+                {/* Controls */}
                 <div style={{ display: "flex", gap: "8px" }}>
                   <Button
                     size="sm"
@@ -710,7 +729,7 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
                     onClick={handleToggleClonePlayback}
                     leftIcon={cloneAudioPlaying ? "⏸" : "▶"}
                   >
-                    {cloneAudioPlaying ? "Pause Source Audio" : "Play Extracted Audio"}
+                    {cloneAudioPlaying ? "Pause Audio" : "Play Extracted Audio"}
                   </Button>
 
                   <Button
@@ -720,7 +739,7 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
                     onClick={handleTestClonedVoiceLine}
                     leftIcon="🎙️"
                   >
-                    Test 3D Speaking Line
+                    Test 3D Speech
                   </Button>
                 </div>
               </div>
@@ -729,7 +748,7 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
         )}
 
         {/* ============================================================ */}
-        {/* STEP 3: REVIEW & LAUNCH LIVE 3D VOICE CALL */}
+        {/* STEP 3: REVIEW & TALK */}
         {/* ============================================================ */}
         {currentStep === 3 && !createdPersona && (
           <div style={{ display: "flex", flexDirection: "column", gap: tokens.spacing.md }}>
@@ -740,40 +759,44 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
                   fontWeight: 700,
                   color: tokens.colors.lavenderPrimary,
                   textTransform: "uppercase",
-                  letterSpacing: "0.05em",
+                  letterSpacing: "0.06em",
                 }}
               >
-                Step 3: Review & Connect
+                Connection
               </span>
               <h2
                 style={{
-                  fontSize: tokens.typography.headingLarge.fontSize,
+                  fontSize: "22px",
                   fontWeight: 700,
                   color: tokens.colors.textPrimary,
                   marginTop: "2px",
+                  letterSpacing: "-0.02em",
                 }}
               >
                 Ready to talk with {name}?
               </h2>
               <p
                 style={{
-                  fontSize: tokens.typography.bodySmall.fontSize,
+                  fontSize: "13px",
                   color: tokens.colors.textSecondary,
                   marginTop: "4px",
+                  lineHeight: "18px",
                 }}
               >
-                Your 3D model and voice are calibrated. Start a live interactive voice call.
+                Your 3D character and calibrated voice model are ready for a real-time call.
               </p>
             </div>
 
-            {/* Interactive 3D Preview Card */}
+            {/* 3D Preview Card */}
             <div
               style={{
-                backgroundColor: tokens.colors.surface,
-                borderRadius: tokens.radii.card,
-                border: `1.5px solid ${tokens.colors.border}`,
+                backgroundColor: "rgba(255, 255, 255, 0.72)",
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
+                borderRadius: "28px",
+                border: "1px solid rgba(255, 255, 255, 0.9)",
                 padding: tokens.spacing.md,
-                boxShadow: tokens.shadows.card,
+                boxShadow: "0 12px 30px rgba(100, 65, 211, 0.08)",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
@@ -786,7 +809,7 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
               />
 
               <h3 style={{ fontSize: "18px", fontWeight: 700, color: tokens.colors.textPrimary, marginTop: "8px" }}>
-                {name || "3D Companion"}
+                {name || "Companion"}
               </h3>
               <p style={{ fontSize: "12px", color: tokens.colors.lavenderPrimary, fontWeight: 600 }}>
                 {clonedVoiceResult ? `🎙️ Cloned Voice (${clonedVoiceResult.metadata.fileName})` : "🎙️ Gentle AI Voice"}
@@ -796,9 +819,9 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
             {/* Consent Checkbox */}
             <div
               style={{
-                backgroundColor: tokens.colors.surfacePeachTint,
-                border: `1.5px solid ${tokens.colors.borderPeach}`,
-                borderRadius: tokens.radii.card,
+                backgroundColor: "rgba(244, 162, 97, 0.12)",
+                border: "1px solid rgba(244, 162, 97, 0.3)",
+                borderRadius: "20px",
                 padding: tokens.spacing.md,
                 display: "flex",
                 alignItems: "flex-start",
@@ -812,8 +835,8 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
                 onChange={(e) => setConsentAcknowledged(e.target.checked)}
                 style={{
                   marginTop: "3px",
-                  width: "20px",
-                  height: "20px",
+                  width: "18px",
+                  height: "18px",
                   accentColor: tokens.colors.lavenderPrimary,
                   cursor: "pointer",
                 }}
@@ -827,7 +850,7 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
                   cursor: "pointer",
                 }}
               >
-                <strong>3D Persona & Voice Consent:</strong> I confirm this is an AI-generated fictional persona. Project Echo strictly prohibits impersonation or non-consensual voice cloning of living persons.
+                <strong>3D Companion Policy:</strong> I acknowledge this is an AI-created fictional companion. Project Echo prohibits impersonation of living individuals.
               </label>
             </div>
           </div>
@@ -852,10 +875,10 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
             />
 
             <div>
-              <h2 style={{ fontSize: tokens.typography.headingLarge.fontSize, fontWeight: 700, color: tokens.colors.textPrimary }}>
+              <h2 style={{ fontSize: "24px", fontWeight: 700, color: tokens.colors.textPrimary }}>
                 {createdPersona.name} is ready!
               </h2>
-              <p style={{ fontSize: tokens.typography.bodySmall.fontSize, color: tokens.colors.lavenderPrimary, fontWeight: 600, marginTop: "2px" }}>
+              <p style={{ fontSize: "13px", color: tokens.colors.lavenderPrimary, fontWeight: 600, marginTop: "2px" }}>
                 3D Character Mesh & Cloned Voice Calibrated
               </p>
             </div>
@@ -883,7 +906,7 @@ export const CreatePersonaScreen: React.FC<CreatePersonaScreenProps> = ({
           </div>
         )}
 
-        {/* Step Navigation Controls */}
+        {/* Action Button Area */}
         {!createdPersona && (
           <div style={{ marginTop: "auto", display: "flex", gap: tokens.spacing.sm, paddingTop: tokens.spacing.md }}>
             {currentStep > 1 && (

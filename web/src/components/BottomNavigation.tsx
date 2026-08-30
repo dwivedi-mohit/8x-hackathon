@@ -1,4 +1,7 @@
 import React from "react";
+import navCreateImg from "../assets/nav/nav_create.jpg";
+import navHomeImg from "../assets/nav/nav_home.jpg";
+import navHistoryImg from "../assets/nav/nav_history.jpg";
 import { tokens } from "../styles/tokens.js";
 
 type NavigationItem = "create" | "home" | "history";
@@ -10,107 +13,180 @@ type BottomNavigationProps = {
   onHistory: () => void;
 };
 
-const HomeIcon = () => (
-  <svg aria-hidden="true" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10Z" />
-    <path d="M9 21v-6h6v6" />
-  </svg>
-);
-
-const HistoryIcon = () => (
-  <svg aria-hidden="true" viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 12a9 9 0 1 0 3-6.7" />
-    <path d="M3 4v5h5" />
-    <path d="M12 7v5l3.5 2" />
-  </svg>
-);
-
-const SparkIcon = () => (
-  <svg aria-hidden="true" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m12 3-1.5 5.5L5 10l5.5 1.5L12 17l1.5-5.5L19 10l-5.5-1.5L12 3Z" />
-    <path d="m19 16-.6 2.4L16 19l2.4.6L19 22l.6-2.4L22 19l-2.4-.6L19 16Z" />
-  </svg>
-);
-
-export const BottomNavigation: React.FC<BottomNavigationProps> = ({ active, onHome, onCreate, onHistory }) => {
-  const itemStyle = (item: NavigationItem): React.CSSProperties => ({
-    minWidth: tokens.dimensions.minTouchTarget,
-    minHeight: "52px",
-    border: 0,
-    background: "transparent",
-    color: active === item ? tokens.colors.lavenderPrimary : tokens.colors.textTertiary,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "3px",
-    fontSize: "11px",
-    fontWeight: active === item ? 700 : 600,
-    cursor: "pointer",
-    padding: "0 14px",
-  });
-
+export const BottomNavigation: React.FC<BottomNavigationProps> = ({
+  active,
+  onHome,
+  onCreate,
+  onHistory,
+}) => {
   return (
     <nav
       aria-label="Primary navigation"
       style={{
         position: "fixed",
-        width: "min(calc(100vw - 32px), 358px)",
+        width: "min(calc(100vw - 32px), 360px)",
         left: "50%",
         transform: "translateX(-50%)",
-        bottom: "max(12px, env(safe-area-inset-bottom))",
-        minHeight: "70px",
-        borderRadius: "28px",
-        backgroundColor: "rgba(255, 255, 255, 0.48)",
-        border: "1px solid rgba(255, 255, 255, 0.72)",
-        backdropFilter: "blur(24px) saturate(160%)",
-        WebkitBackdropFilter: "blur(24px) saturate(160%)",
-        boxShadow: tokens.shadows.elevated,
+        bottom: "max(14px, env(safe-area-inset-bottom))",
+        height: "68px",
+        borderRadius: "34px",
+        backgroundColor: "rgba(255, 255, 255, 0.22)",
+        border: "1px solid rgba(255, 255, 255, 0.6)",
+        backdropFilter: "blur(32px) saturate(200%)",
+        WebkitBackdropFilter: "blur(32px) saturate(200%)",
+        boxShadow: "0 16px 36px rgba(100, 65, 211, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04)",
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-around",
-        padding: "8px 12px",
-        zIndex: 10,
+        justifyContent: "space-between",
+        padding: "4px 8px",
+        zIndex: 999,
       }}
     >
+      {/* 3D Create Tab */}
       <button
         type="button"
         aria-current={active === "create" ? "page" : undefined}
-        aria-label="Create a persona"
         onClick={onCreate}
-        style={itemStyle("create")}
+        style={{
+          flex: 1,
+          height: "54px",
+          border: 0,
+          background: active === "create" ? "rgba(255, 255, 255, 0.68)" : "transparent",
+          borderRadius: "27px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "2px",
+          cursor: "pointer",
+          transition: "all 0.22s cubic-bezier(0.16, 1, 0.3, 1)",
+          boxShadow: active === "create" ? "0 4px 14px rgba(167, 139, 250, 0.25)" : "none",
+          transform: active === "create" ? "scale(1.04)" : "scale(1)",
+        }}
       >
-        <SparkIcon />
-        <span>Create</span>
-      </button>
-
-      <button type="button" aria-current={active === "home" ? "page" : undefined} aria-label="Home" onClick={onHome} style={itemStyle("home")}>
-        <span
+        <div
           style={{
-            width: "58px",
-            height: "58px",
-            marginTop: "-38px",
-            marginBottom: "-2px",
+            width: "30px",
+            height: "30px",
             borderRadius: "50%",
-            border: "5px solid rgba(255, 255, 255, 0.82)",
-            background: active === "home" ? "rgba(100, 65, 211, 0.84)" : "rgba(255, 255, 255, 0.48)",
-            color: active === "home" ? tokens.colors.textInverse : tokens.colors.textTertiary,
-            boxShadow: active === "home" ? tokens.shadows.glowLavender : tokens.shadows.subtle,
-            backdropFilter: "blur(18px) saturate(150%)",
-            WebkitBackdropFilter: "blur(18px) saturate(150%)",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
+            overflow: "hidden",
+            boxShadow: active === "create" ? "0 2px 8px rgba(167, 139, 250, 0.4)" : "0 1px 3px rgba(0,0,0,0.1)",
+            border: active === "create" ? "2px solid #A78BFA" : "1px solid rgba(255,255,255,0.8)",
           }}
         >
-          <HomeIcon />
+          <img
+            src={navCreateImg}
+            alt="Create"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        </div>
+        <span
+          style={{
+            fontSize: "10.5px",
+            fontWeight: active === "create" ? 700 : 500,
+            color: active === "create" ? tokens.colors.lavenderPrimary : tokens.colors.textSecondary,
+          }}
+        >
+          Create
         </span>
-        <span>Home</span>
       </button>
 
-      <button type="button" aria-current={active === "history" ? "page" : undefined} aria-label="Call history" onClick={onHistory} style={itemStyle("history")}>
-        <HistoryIcon />
-        <span>History</span>
+      {/* 3D Home / Companions Tab */}
+      <button
+        type="button"
+        aria-current={active === "home" ? "page" : undefined}
+        onClick={onHome}
+        style={{
+          flex: 1.15,
+          height: "56px",
+          border: 0,
+          background: active === "home" ? "rgba(255, 255, 255, 0.72)" : "transparent",
+          borderRadius: "28px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "2px",
+          cursor: "pointer",
+          transition: "all 0.22s cubic-bezier(0.16, 1, 0.3, 1)",
+          boxShadow: active === "home" ? "0 6px 18px rgba(100, 65, 211, 0.28)" : "none",
+          transform: active === "home" ? "scale(1.08)" : "scale(1)",
+        }}
+      >
+        <div
+          style={{
+            width: "32px",
+            height: "32px",
+            borderRadius: "50%",
+            overflow: "hidden",
+            boxShadow: active === "home" ? "0 3px 10px rgba(100, 65, 211, 0.45)" : "0 1px 3px rgba(0,0,0,0.1)",
+            border: active === "home" ? "2px solid #6441D3" : "1px solid rgba(255,255,255,0.8)",
+          }}
+        >
+          <img
+            src={navHomeImg}
+            alt="Home"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        </div>
+        <span
+          style={{
+            fontSize: "11px",
+            fontWeight: active === "home" ? 700 : 500,
+            color: active === "home" ? tokens.colors.lavenderPrimary : tokens.colors.textSecondary,
+          }}
+        >
+          Companions
+        </span>
+      </button>
+
+      {/* 3D History / Calls Tab */}
+      <button
+        type="button"
+        aria-current={active === "history" ? "page" : undefined}
+        onClick={onHistory}
+        style={{
+          flex: 1,
+          height: "54px",
+          border: 0,
+          background: active === "history" ? "rgba(255, 255, 255, 0.68)" : "transparent",
+          borderRadius: "27px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "2px",
+          cursor: "pointer",
+          transition: "all 0.22s cubic-bezier(0.16, 1, 0.3, 1)",
+          boxShadow: active === "history" ? "0 4px 14px rgba(244, 162, 97, 0.25)" : "none",
+          transform: active === "history" ? "scale(1.04)" : "scale(1)",
+        }}
+      >
+        <div
+          style={{
+            width: "30px",
+            height: "30px",
+            borderRadius: "50%",
+            overflow: "hidden",
+            boxShadow: active === "history" ? "0 2px 8px rgba(244, 162, 97, 0.4)" : "0 1px 3px rgba(0,0,0,0.1)",
+            border: active === "history" ? "2px solid #F4A261" : "1px solid rgba(255,255,255,0.8)",
+          }}
+        >
+          <img
+            src={navHistoryImg}
+            alt="History"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        </div>
+        <span
+          style={{
+            fontSize: "10.5px",
+            fontWeight: active === "history" ? 700 : 500,
+            color: active === "history" ? tokens.colors.peachPrimary : tokens.colors.textSecondary,
+          }}
+        >
+          History
+        </span>
       </button>
     </nav>
   );
