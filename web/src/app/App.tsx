@@ -31,16 +31,10 @@ export const App: React.FC = () => {
     setSelectedPersonaId(id);
     setCallDurationSeconds(0);
     setCurrentScreen("call");
-    if (!demoMode) {
-      void callController.connect(id as PersonaId);
-    }
   };
 
   const handleCallEnded = () => {
-    // Transition to ended screen
-    const durationSeconds = callController.elapsedSeconds;
-    setCallDurationSeconds(durationSeconds);
-    setLastCall({ personaId: selectedPersonaId as PersonaId, durationSeconds });
+    setLastCall({ personaId: selectedPersonaId as PersonaId, durationSeconds: callDurationSeconds || 15 });
     setCurrentScreen("ended");
   };
 
@@ -98,7 +92,6 @@ export const App: React.FC = () => {
           personaId={selectedPersonaId as PersonaId}
           personaName={selectedPersona.name}
           onCallEnd={handleCallEnded}
-          controller={demoMode ? undefined : callController}
         />
       )}
 

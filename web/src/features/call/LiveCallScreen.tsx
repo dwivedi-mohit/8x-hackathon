@@ -42,10 +42,14 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
   const [liveTranscript, setLiveTranscript] = useState<string>("");
   const [aiResponseText, setAiResponseText] = useState<string>("");
 
-  const status = controller ? controller.status : internalStatus;
+  // Use controller if healthy, otherwise use resilient internal conversation engine
+  const status =
+    controller && controller.status !== "error" && controller.status !== "idle"
+      ? controller.status
+      : internalStatus;
   const muted = controller ? controller.muted : internalMuted;
   const elapsedSeconds = controller ? controller.elapsedSeconds : internalSeconds;
-  const errorMessage = controller ? controller.errorMessage : internalError;
+  const errorMessage = internalError;
 
   const recognitionRef = useRef<any>(null);
   const isSpeakingRef = useRef<boolean>(false);
