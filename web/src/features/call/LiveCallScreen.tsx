@@ -1,15 +1,30 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import type { CallUiProps, CallStatus } from "../../types/call.js";
 import { getPersonaById } from "../persona/personasData.js";
-import { PersonaAvatar } from "../../components/PersonaAvatar.js";
 import { ThreeAvatar3D } from "../../components/ThreeAvatar3D.js";
 import { StatusBadge } from "../../components/StatusBadge.js";
-import { CallVisualizer } from "../../components/CallVisualizer.js";
 import { TimerDisplay } from "../../components/TimerDisplay.js";
 import { CallControls } from "../../components/CallControls.js";
-import { SafetyDisclosure } from "../../components/SafetyDisclosure.js";
 import { VoiceboxService } from "../../services/voice/VoiceboxService.js";
 import { tokens } from "../../styles/tokens.js";
+
+// Speech Recognition Type definition
+interface SpeechRecognitionEvent extends Event {
+  results: {
+    [index: number]: {
+      [index: number]: {
+        transcript: string;
+      };
+      isFinal: boolean;
+    };
+    length: number;
+  };
+}
+
+interface IWindowWithSpeech extends Window {
+  SpeechRecognition?: any;
+  webkitSpeechRecognition?: any;
+}
 
 export const LiveCallScreen: React.FC<CallUiProps> = ({
   personaId,
@@ -19,51 +34,194 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
 }) => {
   const persona = getPersonaById(personaId);
 
-  // Internal mock state when no external controller is passed
-  const [internalStatus, setInternalStatus] = useState<CallStatus>("listening");
+  // Internal call state
+  const [internalStatus, setInternalStatus] = useState<CallStatus>("speaking");
   const [internalMuted, setInternalMuted] = useState<boolean>(false);
   const [internalSeconds, setInternalSeconds] = useState<number>(0);
   const [internalError, setInternalError] = useState<string | undefined>(undefined);
+  const [liveTranscript, setLiveTranscript] = useState<string>("");
+  const [aiResponseText, setAiResponseText] = useState<string>("");
 
-  // Use controller if provided, otherwise fallback to internal state
   const status = controller ? controller.status : internalStatus;
   const muted = controller ? controller.muted : internalMuted;
   const elapsedSeconds = controller ? controller.elapsedSeconds : internalSeconds;
   const errorMessage = controller ? controller.errorMessage : internalError;
 
-  // Speak natural greeting using cloned Voicebox voice model
-  useEffect(() => {
-    const greetingText = `Hello! I am ${persona.name}. I am right here with you.`;
-    const voiceProfile = persona.clonedVoice
+  const recognitionRef = useRef<any>(null);
+  const isSpeakingRef = useRef<boolean>(false);
+  const voiceProfileRef = useRef(
+    persona.clonedVoice
       ? {
-          fundamentalPitchHz: persona.clonedVoice.pitchEstimateHz,
-          pitchShiftFactor: persona.clonedVoice.pitchEstimateHz / 175,
+          fundamentalPitchHz: persona.clonedVoice.pitchEstimateHz || 135,
+          pitchShiftFactor: (persona.clonedVoice.pitchEstimateHz || 135) / 160,
           audioDataUrl: persona.clonedVoice.audioBlobUrl,
         }
-      : undefined;
+      : undefined
+  );
+
+  // Conversational response generator based on relation and user query
+  const generatePersonaResponse = (userText: string): string => {
+    const query = userText.toLowerCase();
+    const isHindi = /kaise|kya|aap|namaste|pranam|dada|batao|kaho|theek|haal/i.test(query);
+
+    if (persona.id === "dadaji" || persona.name.toLowerCase().includes("dada")) {
+      if (isHindi) {
+        if (/kaise|haal|kya chal/i.test(query)) {
+          return `Jeete raho beta! Main bilkul theek hoon. Tum batao, tumhara din kaisa raha?`;
+        }
+        if (/dar|tension|chinta|stress|pareshan/i.test(query)) {
+          return `Beta, ghabrao mat. Zindagi me mushkilein aati jaati rehti hain. Apne upar vishwas rakho, sab theek ho jayega.`;
+        }
+        return `Haan beta, main sun raha hoon. Tum khush raho, hamesha mere aashirwad tumhare sath hain.`;
+      } else {
+        if (/how are you|how do you do/i.test(query)) {
+          return `Bless you, my child! I am doing wonderfully. How has your day been treating you?`;
+        }
+        if (/worried|stress|anxious|tired|help/i.test(query)) {
+          return `Take a deep breath, my child. Remember that storms always pass. I am always right here by your side.`;
+        }
+        return `I hear you, my child. Always remember you are capable of overcoming whatever comes your way.`;
+      }
+    }
+
+    // Default conversational responses for any persona
+    if (isHindi) {
+      return `Main hamesha aapke sath hoon. Mujhe sunkar bahut accha laga, aur bataiye!`;
+    }
+    return `I hear you completely. It's so good to talk to you. Tell me more!`;
+  };
+
+  // Speak dynamic AI dialogue with Voicebox synthesis
+  const speakAiReply = (replyText: string) => {
+    isSpeakingRef.current = true;
+    setAiResponseText(replyText);
+    if (!controller) setInternalStatus("speaking");
+
+    VoiceboxService.speakWithVoicebox(
+      replyText,
+      voiceProfileRef.current,
+      () => {
+        isSpeakingRef.current = true;
+        if (!controller) setInternalStatus("speaking");
+      },
+      () => {
+        isSpeakingRef.current = false;
+        if (!controller) setInternalStatus("listening");
+        // Resume listening for next user input
+        startListeningLoop();
+      }
+    );
+  };
+
+  // Continuous speech recognition loop
+  const startListeningLoop = () => {
+    if (isSpeakingRef.current || muted) return;
+
+    const win = window as unknown as IWindowWithSpeech;
+    const SpeechRecognitionClass = win.SpeechRecognition || win.webkitSpeechRecognition;
+
+    if (!SpeechRecognitionClass) {
+      if (!controller) setInternalStatus("listening");
+      return;
+    }
+
+    try {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // ignore
+        }
+      }
+
+      const recognition = new SpeechRecognitionClass();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      recognition.onstart = () => {
+        if (!isSpeakingRef.current && !controller) {
+          setInternalStatus("listening");
+        }
+      };
+
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        let transcript = "";
+        for (let i = 0; i < event.results.length; i++) {
+          transcript += event.results[i]?.[0]?.transcript || "";
+        }
+
+        if (transcript.trim()) {
+          setLiveTranscript(transcript);
+        }
+      };
+
+      recognition.onend = () => {
+        if (isSpeakingRef.current) return;
+
+        // If user spoke something, generate AI reply
+        if (liveTranscript.trim()) {
+          const userQuery = liveTranscript.trim();
+          setLiveTranscript("");
+          if (!controller) setInternalStatus("thinking");
+
+          setTimeout(() => {
+            const aiReply = generatePersonaResponse(userQuery);
+            speakAiReply(aiReply);
+          }, 600);
+        } else {
+          // Keep listening loop active
+          setTimeout(() => {
+            if (!isSpeakingRef.current && !muted) {
+              startListeningLoop();
+            }
+          }, 800);
+        }
+      };
+
+      recognition.onerror = () => {
+        setTimeout(() => {
+          if (!isSpeakingRef.current && !muted) {
+            startListeningLoop();
+          }
+        }, 1000);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch {
+      // recognition start fallback
+    }
+  };
+
+  // Initial call start greeting
+  useEffect(() => {
+    const isDadaji = persona.id === "dadaji" || persona.name.toLowerCase().includes("dada");
+    const greetingText = isDadaji
+      ? `Jeete raho beta! Main Dada Ji hoon. Kaho, aaj tumhara din kaisa raha?`
+      : `Hello! I am ${persona.name}. I am right here with you. How are you feeling today?`;
 
     const timer = setTimeout(() => {
-      VoiceboxService.speakWithVoicebox(
-        greetingText,
-        voiceProfile,
-        () => {
-          if (!controller) setInternalStatus("speaking");
-        },
-        () => {
-          if (!controller) setInternalStatus("listening");
-        }
-      );
-    }, 600);
+      speakAiReply(greetingText);
+    }, 500);
 
     return () => {
       clearTimeout(timer);
+      isSpeakingRef.current = false;
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // ignore
+        }
+      }
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
       }
     };
   }, [persona.id]);
 
-  // Timer simulation for mock mode
+  // Timer interval for call duration
   useEffect(() => {
     if (controller) return;
 
@@ -79,11 +237,35 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
     if (controller) {
       controller.setMuted(!controller.muted);
     } else {
-      setInternalMuted((prev) => !prev);
+      setInternalMuted((prev) => {
+        const next = !prev;
+        if (next) {
+          if (recognitionRef.current) {
+            try {
+              recognitionRef.current.stop();
+            } catch {
+              // ignore
+            }
+          }
+        } else {
+          startListeningLoop();
+        }
+        return next;
+      });
     }
   };
 
   const handleEndCall = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        // ignore
+      }
+    }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
     if (controller) {
       controller.disconnect();
     } else {
@@ -98,33 +280,20 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
     } else {
       setInternalError(undefined);
       setInternalStatus("connecting");
-      setTimeout(() => setInternalStatus("listening"), 1200);
-    }
-  };
-
-  const handleSelectMockState = (newStatus: CallStatus) => {
-    if (newStatus === "error") {
-      setInternalError("Microphone connection timed out. Check permissions.");
-    } else {
-      setInternalError(undefined);
-    }
-    setInternalStatus(newStatus);
-
-    if (newStatus === "ended") {
-      onCallEnd?.();
+      setTimeout(() => startListeningLoop(), 1000);
     }
   };
 
   const getSubtitleByStatus = () => {
     switch (status) {
       case "connecting":
-        return "Establishing secure voice session…";
+        return "Establishing secure voice call…";
       case "listening":
-        return muted ? "Microphone is muted" : "Speak naturally — Maya is listening";
+        return muted ? "Microphone is muted" : `Listening to you… Speak naturally to ${persona.name}`;
       case "thinking":
-        return "Reflecting on your thoughts…";
+        return `${persona.name} is reflecting…`;
       case "speaking":
-        return "Speaking with you…";
+        return `${persona.name} is speaking…`;
       case "reconnecting":
         return "Re-establishing audio connection…";
       case "error":
@@ -143,80 +312,108 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
         display: "flex",
         flexDirection: "column",
         minHeight: "100%",
-        height: "100%",
         flex: 1,
-        backgroundColor: "transparent",
+        padding: "48px 24px 36px",
+        boxSizing: "border-box",
         justifyContent: "space-between",
-        paddingTop: "20px",
-        paddingBottom: "36px",
-        position: "relative",
-        overflow: "hidden",
       }}
     >
-      {/* Top-Right Champagne Gold Sunlight Glow Accent */}
+      {/* 1. Header with Persona Name & Status */}
       <div
         style={{
-          position: "absolute",
-          top: "-50px",
-          right: "-50px",
-          width: "260px",
-          height: "260px",
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(255, 230, 168, 0.4) 0%, rgba(255, 253, 248, 0.15) 50%, transparent 75%)",
-          pointerEvents: "none",
-          zIndex: 0,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "8px",
+          textAlign: "center",
         }}
-      />
+      >
+        <h2
+          style={{
+            fontSize: "26px",
+            fontWeight: 800,
+            color: tokens.colors.textPrimary,
+            letterSpacing: "-0.02em",
+          }}
+        >
+          {persona.name}
+        </h2>
 
-      {/* Central Persona Avatar (3D Hologram + Name) */}
+        <StatusBadge status={status} />
+        <TimerDisplay seconds={elapsedSeconds} />
+      </div>
+
+      {/* 2. Central 3D Holographic Character Viewport */}
       <div
         style={{
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          marginTop: "16px",
-          marginBottom: "auto",
           position: "relative",
-          zIndex: 1,
+          margin: "12px 0",
         }}
       >
         <ThreeAvatar3D
           photoUrl={persona.photoUrl}
           personaName={persona.name}
-          gradientStart={persona.avatarGradient?.start}
-          gradientEnd={persona.avatarGradient?.end}
-          size={340}
+          size={310}
           isSpeaking={status === "speaking"}
           isListening={status === "listening"}
-          status={status}
         />
 
-        <h2
+        {/* Live Subtitle & Transcript Overlay Card */}
+        <div
           style={{
-            fontSize: "26px",
-            fontWeight: 800,
-            color: "#312E81",
-            textShadow: "0 2px 12px rgba(139, 92, 246, 0.25), 0 1px 3px rgba(255, 255, 255, 0.6)",
-            marginTop: "12px",
-            letterSpacing: "-0.02em",
+            marginTop: "16px",
+            maxWidth: "340px",
+            minHeight: "44px",
+            borderRadius: "20px",
+            padding: "10px 18px",
+            backgroundColor: "rgba(255, 255, 255, 0.88)",
+            border: "1px solid rgba(254, 240, 138, 0.6)",
+            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.06)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
             textAlign: "center",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          {persona.name}
-        </h2>
+          <p
+            style={{
+              fontSize: "13px",
+              fontWeight: 600,
+              color: status === "speaking" ? "#B45309" : tokens.colors.textPrimary,
+              lineHeight: "18px",
+              margin: 0,
+            }}
+          >
+            {status === "speaking" && aiResponseText
+              ? `"${aiResponseText}"`
+              : liveTranscript
+              ? `You: "${liveTranscript}"`
+              : getSubtitleByStatus()}
+          </p>
+        </div>
       </div>
 
-      {/* Bottom Controls pinned at the very bottom dock */}
-      <div style={{ width: "100%", marginTop: "auto", paddingBottom: "12px" }}>
+      {/* 3. Call Controls (Mute & End Call) */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "16px",
+        }}
+      >
         <CallControls
           status={status}
           muted={muted}
           onToggleMute={handleToggleMute}
           onEndCall={handleEndCall}
           onRetry={handleRetry}
-          onSelectMockState={handleSelectMockState}
-          isMockMode={!controller}
         />
       </div>
     </div>
