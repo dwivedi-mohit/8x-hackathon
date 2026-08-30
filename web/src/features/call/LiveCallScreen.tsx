@@ -42,7 +42,6 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
   const [liveTranscript, setLiveTranscript] = useState<string>("");
   const [aiResponseText, setAiResponseText] = useState<string>("");
 
-  // Use controller if healthy, otherwise use resilient internal conversation engine
   const status =
     controller && controller.status !== "error" && controller.status !== "idle"
       ? controller.status
@@ -53,6 +52,7 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
 
   const recognitionRef = useRef<any>(null);
   const isSpeakingRef = useRef<boolean>(false);
+  const latestTranscriptRef = useRef<string>("");
   const voiceProfileRef = useRef(
     persona.clonedVoice
       ? {
@@ -66,17 +66,20 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
   // Conversational response generator based on relation and user query
   const generatePersonaResponse = (userText: string): string => {
     const query = userText.toLowerCase();
-    const isHindi = /kaise|kya|aap|namaste|pranam|dada|batao|kaho|theek|haal/i.test(query);
+    const isHindi = /kaise|kya|aap|namaste|pranam|dada|batao|kaho|theek|haal|meri|baat|sun/i.test(query);
 
     if (persona.id === "dadaji" || persona.name.toLowerCase().includes("dada")) {
       if (isHindi) {
         if (/kaise|haal|kya chal/i.test(query)) {
-          return `Jeete raho beta! Main bilkul theek hoon. Tum batao, tumhara din kaisa raha?`;
+          return `Jeete raho beta! Main bilkul theek hoon. Tum batao, aaj tumhara din kaisa raha?`;
         }
-        if (/dar|tension|chinta|stress|pareshan/i.test(query)) {
-          return `Beta, ghabrao mat. Zindagi me mushkilein aati jaati rehti hain. Apne upar vishwas rakho, sab theek ho jayega.`;
+        if (/dar|tension|chinta|stress|pareshan|problem/i.test(query)) {
+          return `Beta, chinta mat karo. Mushkilein sabke jeevan me aati hain. Hamesha himmat aur vishwas rakho, sab theek hoga.`;
         }
-        return `Haan beta, main sun raha hoon. Tum khush raho, hamesha mere aashirwad tumhare sath hain.`;
+        if (/kaha|kidhar|ghar/i.test(query)) {
+          return `Main hamesha tumhare dil me aur tumhare sath hoon beta. Tum bas khush raho.`;
+        }
+        return `Haan beta, main tumhari har baat dhyan se sun raha hoon. Hamesha aage badhte raho, mera aashirwad tumhare sath hai.`;
       } else {
         if (/how are you|how do you do/i.test(query)) {
           return `Bless you, my child! I am doing wonderfully. How has your day been treating you?`;
@@ -88,7 +91,6 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
       }
     }
 
-    // Default conversational responses for any persona
     if (isHindi) {
       return `Main hamesha aapke sath hoon. Mujhe sunkar bahut accha laga, aur bataiye!`;
     }
@@ -98,21 +100,34 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
   // Speak dynamic AI dialogue with Voicebox synthesis
   const speakAiReply = (replyText: string) => {
     isSpeakingRef.current = true;
+    latestTranscriptRef.current = "";
+    setLiveTranscript("");
     setAiResponseText(replyText);
-    if (!controller) setInternalStatus("speaking");
+    setInternalStatus("speaking");
+
+    // Pause recognition while companion is speaking
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        // ignore
+      }
+    }
 
     VoiceboxService.speakWithVoicebox(
       replyText,
       voiceProfileRef.current,
       () => {
         isSpeakingRef.current = true;
-        if (!controller) setInternalStatus("speaking");
+        setInternalStatus("speaking");
       },
       () => {
         isSpeakingRef.current = false;
-        if (!controller) setInternalStatus("listening");
+        setInternalStatus("listening");
         // Resume listening for next user input
-        startListeningLoop();
+        setTimeout(() => {
+          startListeningLoop();
+        }, 300);
       }
     );
   };
@@ -125,7 +140,7 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
     const SpeechRecognitionClass = win.SpeechRecognition || win.webkitSpeechRecognition;
 
     if (!SpeechRecognitionClass) {
-      if (!controller) setInternalStatus("listening");
+      setInternalStatus("listening");
       return;
     }
 
@@ -141,10 +156,10 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
       const recognition = new SpeechRecognitionClass();
       recognition.continuous = false;
       recognition.interimResults = true;
-      recognition.lang = "en-US";
+      recognition.lang = "en-IN"; // Supports Hindi, Hinglish & English accents smoothly
 
       recognition.onstart = () => {
-        if (!isSpeakingRef.current && !controller) {
+        if (!isSpeakingRef.current) {
           setInternalStatus("listening");
         }
       };
@@ -156,30 +171,31 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
         }
 
         if (transcript.trim()) {
-          setLiveTranscript(transcript);
+          latestTranscriptRef.current = transcript.trim();
+          setLiveTranscript(transcript.trim());
         }
       };
 
       recognition.onend = () => {
         if (isSpeakingRef.current) return;
 
-        // If user spoke something, generate AI reply
-        if (liveTranscript.trim()) {
-          const userQuery = liveTranscript.trim();
+        const capturedText = latestTranscriptRef.current.trim();
+        if (capturedText) {
+          latestTranscriptRef.current = "";
           setLiveTranscript("");
-          if (!controller) setInternalStatus("thinking");
+          setInternalStatus("thinking");
 
           setTimeout(() => {
-            const aiReply = generatePersonaResponse(userQuery);
+            const aiReply = generatePersonaResponse(capturedText);
             speakAiReply(aiReply);
-          }, 600);
+          }, 450);
         } else {
           // Keep listening loop active
           setTimeout(() => {
             if (!isSpeakingRef.current && !muted) {
               startListeningLoop();
             }
-          }, 800);
+          }, 500);
         }
       };
 
@@ -188,13 +204,13 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
           if (!isSpeakingRef.current && !muted) {
             startListeningLoop();
           }
-        }, 1000);
+        }, 800);
       };
 
       recognitionRef.current = recognition;
       recognition.start();
     } catch {
-      // recognition start fallback
+      // recognition fallback
     }
   };
 
@@ -207,7 +223,7 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
 
     const timer = setTimeout(() => {
       speakAiReply(greetingText);
-    }, 500);
+    }, 450);
 
     return () => {
       clearTimeout(timer);
@@ -227,36 +243,30 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
 
   // Timer interval for call duration
   useEffect(() => {
-    if (controller) return;
-
     if (status === "listening" || status === "thinking" || status === "speaking") {
       const interval = setInterval(() => {
         setInternalSeconds((prev) => prev + 1);
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [status, controller]);
+  }, [status]);
 
   const handleToggleMute = () => {
-    if (controller) {
-      controller.setMuted(!controller.muted);
-    } else {
-      setInternalMuted((prev) => {
-        const next = !prev;
-        if (next) {
-          if (recognitionRef.current) {
-            try {
-              recognitionRef.current.stop();
-            } catch {
-              // ignore
-            }
+    setInternalMuted((prev) => {
+      const next = !prev;
+      if (next) {
+        if (recognitionRef.current) {
+          try {
+            recognitionRef.current.stop();
+          } catch {
+            // ignore
           }
-        } else {
-          startListeningLoop();
         }
-        return next;
-      });
-    }
+      } else {
+        startListeningLoop();
+      }
+      return next;
+    });
   };
 
   const handleEndCall = () => {
@@ -270,22 +280,18 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
-    if (controller) {
-      controller.disconnect();
-    } else {
-      setInternalStatus("ended");
-    }
+    setInternalStatus("ended");
     onCallEnd?.();
   };
 
   const handleRetry = () => {
-    if (controller) {
-      controller.retry();
-    } else {
-      setInternalError(undefined);
-      setInternalStatus("connecting");
-      setTimeout(() => startListeningLoop(), 1000);
-    }
+    setInternalError(undefined);
+    setInternalStatus("listening");
+    startListeningLoop();
+  };
+
+  const handleQuickPrompt = (promptText: string) => {
+    speakAiReply(generatePersonaResponse(promptText));
   };
 
   const getSubtitleByStatus = () => {
@@ -293,9 +299,9 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
       case "connecting":
         return "Establishing secure voice call…";
       case "listening":
-        return muted ? "Microphone is muted" : `Listening to you… Speak naturally to ${persona.name}`;
+        return muted ? "Microphone is muted" : `Listening… Speak naturally to ${persona.name}`;
       case "thinking":
-        return `${persona.name} is reflecting…`;
+        return `${persona.name} is thinking & reflecting…`;
       case "speaking":
         return `${persona.name} is speaking…`;
       case "reconnecting":
@@ -317,7 +323,7 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
         flexDirection: "column",
         minHeight: "100%",
         flex: 1,
-        padding: "48px 24px 36px",
+        padding: "42px 20px 28px",
         boxSizing: "border-box",
         justifyContent: "space-between",
       }}
@@ -328,7 +334,7 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "8px",
+          gap: "6px",
           textAlign: "center",
         }}
       >
@@ -355,13 +361,13 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
           alignItems: "center",
           justifyContent: "center",
           position: "relative",
-          margin: "12px 0",
+          margin: "6px 0",
         }}
       >
         <ThreeAvatar3D
           photoUrl={persona.photoUrl}
           personaName={persona.name}
-          size={310}
+          size={300}
           isSpeaking={status === "speaking"}
           isListening={status === "listening"}
         />
@@ -369,11 +375,12 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
         {/* Live Subtitle & Transcript Overlay Card */}
         <div
           style={{
-            marginTop: "16px",
+            marginTop: "12px",
+            width: "100%",
             maxWidth: "340px",
             minHeight: "44px",
             borderRadius: "20px",
-            padding: "10px 18px",
+            padding: "10px 16px",
             backgroundColor: "rgba(255, 255, 255, 0.88)",
             border: "1px solid rgba(254, 240, 138, 0.6)",
             boxShadow: "0 8px 24px rgba(0, 0, 0, 0.06)",
@@ -401,6 +408,39 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
               : getSubtitleByStatus()}
           </p>
         </div>
+
+        {/* Quick Suggestion Chips for Instant Tap Conversation */}
+        <div
+          style={{
+            display: "flex",
+            gap: "8px",
+            marginTop: "10px",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            maxWidth: "340px",
+          }}
+        >
+          {["Dada ji kaise ho?", "Mujhe thoda tension hai", "How are you doing?"].map((chip, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleQuickPrompt(chip)}
+              style={{
+                fontSize: "11px",
+                fontWeight: 600,
+                padding: "5px 10px",
+                borderRadius: "14px",
+                backgroundColor: "rgba(255, 255, 255, 0.8)",
+                border: "1px solid rgba(245, 158, 11, 0.3)",
+                color: "#78350F",
+                cursor: "pointer",
+                boxShadow: "0 2px 6px rgba(0, 0, 0, 0.04)",
+              }}
+            >
+              💬 {chip}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* 3. Call Controls (Mute & End Call) */}
@@ -409,7 +449,7 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "16px",
+          gap: "14px",
         }}
       >
         <CallControls
