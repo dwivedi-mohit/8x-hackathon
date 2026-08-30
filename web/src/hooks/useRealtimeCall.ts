@@ -1,12 +1,13 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { RealtimeCallService } from "../services/realtime/RealtimeCallService";
-import type { CallStatus, PersonaId, RealtimeCallController } from "../types/call";
+import type { CallStatus, ConnectionQuality, PersonaId, RealtimeCallController } from "../types/call";
 
 export function useRealtimeCall(): RealtimeCallController {
   const [status, setStatus] = useState<CallStatus>("idle");
   const [muted, setMutedState] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
+  const [connectionQuality, setConnectionQuality] = useState<ConnectionQuality>("unknown");
 
   const serviceRef = useRef<RealtimeCallService | null>(null);
 
@@ -17,6 +18,7 @@ export function useRealtimeCall(): RealtimeCallController {
         onStatusChange: (s) => setStatus(s),
         onErrorMessage: (m) => setErrorMessage(m),
         onElapsedChange: (e) => setElapsedSeconds(e),
+        onQualityChange: (q) => setConnectionQuality(q),
       });
     }
     return serviceRef.current;
@@ -57,6 +59,7 @@ export function useRealtimeCall(): RealtimeCallController {
     muted,
     elapsedSeconds,
     errorMessage,
+    connectionQuality,
     connect,
     disconnect,
     setMuted,

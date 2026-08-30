@@ -1,4 +1,4 @@
-import type { CallStatus, PersonaId, CallBackendRequest, CallBackendResponse } from "../../types/call";
+import type { CallStatus, ConnectionQuality, PersonaId, CallBackendRequest, CallBackendResponse } from "../../types/call";
 import { AudioManager } from "../../lib/audio/AudioManager";
 
 const ICE_GATHERING_TIMEOUT_MS = 5000;
@@ -11,6 +11,7 @@ type CallServiceCallbacks = {
   onStatusChange: (status: CallStatus) => void;
   onErrorMessage: (message: string | undefined) => void;
   onElapsedChange: (seconds: number) => void;
+  onQualityChange: (quality: ConnectionQuality) => void;
 };
 
 export class RealtimeCallService {
@@ -134,7 +135,16 @@ export class RealtimeCallService {
     // 6. Handle connection state changes
     pc.oniceconnectionstatechange = () => {
       const state = pc.iceConnectionState;
+
+      // Report quality based on ICE state
+      if (state === "connected" || state === "completed") {
+        this.callbacks.onQualityChange("good");
+      } else if (state === "disconnected") {
+        this.callbacks.onQualityChange("degraded");
+      }
+
       if (state === "failed" || state === "closed") {
+        this.callbacks.onQualityChange("unknown");
         if (this.status !== "ended" && this.status !== "error") {
           if (this.status === "connecting") {
             this.handleError(new CallError("Connection failed.", "connection-failed"));

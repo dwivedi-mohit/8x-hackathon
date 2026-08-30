@@ -48,6 +48,9 @@ export function IntegrationExample({ personaId, personaName, onCallEnd }: CallUi
       <p>
         Status: <strong>{call.status}</strong>
       </p>
+      <p>
+        Quality: <strong>{call.connectionQuality}</strong>
+      </p>
 
       {/* Elapsed */}
       {call.status !== "idle" && call.status !== "ended" && call.status !== "error" && (

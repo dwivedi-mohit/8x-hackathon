@@ -100,14 +100,16 @@ describe("RealtimeCallService", () => {
     const onStatusChange = vi.fn();
     const onErrorMessage = vi.fn();
     const onElapsedChange = vi.fn();
+    const onQualityChange = vi.fn();
 
     const service = new RealtimeCallService({
       onStatusChange,
       onErrorMessage,
       onElapsedChange,
+      onQualityChange,
     });
 
-    return { service, onStatusChange, onErrorMessage, onElapsedChange };
+    return { service, onStatusChange, onErrorMessage, onElapsedChange, onQualityChange };
   }
 
   it("starts in idle status", () => {
