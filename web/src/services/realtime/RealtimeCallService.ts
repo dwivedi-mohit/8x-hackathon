@@ -1,13 +1,27 @@
-import type { CallStatus, PersonaId, CallBackendRequest, CallBackendResponse } from "../../types/call";
+import type { CallStatus, ConnectionQuality, PersonaId, CallBackendRequest, CallBackendResponse } from "../../types/call";
 import { AudioManager } from "../../lib/audio/AudioManager";
 
 const ICE_GATHERING_TIMEOUT_MS = 5000;
-const RECONNECT_DELAY_MS = 2000;
+const RECONNECT_BASE_DELAY_MS = 1000;
+const RECONNECT_MAX_DELAY_MS = 8000;
+const MAX_RECONNECT_ATTEMPTS = 5;
+const HEALTH_CHECK_INTERVAL_MS = 5000;
+
+const ErrorCode = {
+  MIC_DENIED: "mic-denied",
+  NETWORK_ERROR: "network-error",
+  SERVER_ERROR: "server-error",
+  INVALID_RESPONSE: "invalid-response",
+  OFFER_FAILED: "offer-failed",
+  CONNECTION_FAILED: "connection-failed",
+  MAX_RECONNECT: "max-reconnect",
+} as const;
 
 type CallServiceCallbacks = {
   onStatusChange: (status: CallStatus) => void;
   onErrorMessage: (message: string | undefined) => void;
   onElapsedChange: (seconds: number) => void;
+  onQualityChange: (quality: ConnectionQuality) => void;
 };
 
 export class RealtimeCallService {
@@ -22,6 +36,8 @@ export class RealtimeCallService {
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private lastPersonaId: PersonaId | null = null;
   private connecting = false;
+  private reconnectAttempts = 0;
+  private healthCheckInterval: ReturnType<typeof setInterval> | null = null;
 
   private callbacks: CallServiceCallbacks;
 
@@ -91,7 +107,7 @@ export class RealtimeCallService {
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
-      throw new CallError("Microphone access denied. Enable it in Settings.", "mic-denied");
+      throw new CallError("Microphone access denied. Enable it in Settings.", ErrorCode.MIC_DENIED);
     }
     this.localStream = localStream;
 
@@ -129,10 +145,19 @@ export class RealtimeCallService {
     // 6. Handle connection state changes
     pc.oniceconnectionstatechange = () => {
       const state = pc.iceConnectionState;
+
+      // Report quality based on ICE state
+      if (state === "connected" || state === "completed") {
+        this.callbacks.onQualityChange("good");
+      } else if (state === "disconnected") {
+        this.callbacks.onQualityChange("degraded");
+      }
+
       if (state === "failed" || state === "closed") {
+        this.callbacks.onQualityChange("unknown");
         if (this.status !== "ended" && this.status !== "error") {
           if (this.status === "connecting") {
-            this.handleError(new CallError("Connection failed.", "connection-failed"));
+            this.handleError(new CallError("Connection failed.", ErrorCode.CONNECTION_FAILED));
           } else {
             this.setStatus("reconnecting");
             this.scheduleReconnect();
@@ -155,7 +180,7 @@ export class RealtimeCallService {
 
     const sdp = pc.localDescription?.sdp;
     if (!sdp) {
-      throw new CallError("Failed to create offer.", "offer-failed");
+      throw new CallError("Failed to create offer.", ErrorCode.OFFER_FAILED);
     }
 
     // 9. Exchange SDP with backend
@@ -171,26 +196,28 @@ export class RealtimeCallService {
         const errorBody = await res.json().catch(() => null) as { error?: string } | null;
         throw new CallError(
           errorBody?.error ?? `Unable to start the voice call (server ${res.status}).`,
-          "server-error",
+          ErrorCode.SERVER_ERROR,
         );
       }
 
       response = await res.json();
     } catch (err) {
       if (err instanceof CallError) throw err;
-      throw new CallError("Network error. Check your connection.", "network-error");
+      throw new CallError("Network error. Check your connection.", ErrorCode.NETWORK_ERROR);
     }
 
     if (!response.sdp) {
-      throw new CallError("Invalid server response.", "invalid-response");
+      throw new CallError("Invalid server response.", ErrorCode.INVALID_RESPONSE);
     }
 
     // 10. Set remote answer
     await pc.setRemoteDescription({ type: "answer", sdp: response.sdp });
 
     // 11. Connected — transition to listening
+    this.reconnectAttempts = 0;
     this.setStatus("listening");
     this.startElapsedTimer();
+    this.startHealthCheck();
   }
 
   private setupDataChannel(channel: RTCDataChannel): void {
@@ -246,12 +273,39 @@ export class RealtimeCallService {
     this.setErrorMessage(message);
   }
 
+  private startHealthCheck(): void {
+    this.stopHealthCheck();
+    this.healthCheckInterval = setInterval(() => {
+      if (!this.pc || this.status === "ended" || this.status === "error") {
+        this.stopHealthCheck();
+        return;
+      }
+
+      const state = this.pc.iceConnectionState;
+      if (state === "failed" || state === "closed") {
+        this.stopHealthCheck();
+        this.setStatus("reconnecting");
+        this.scheduleReconnect();
+      }
+    }, HEALTH_CHECK_INTERVAL_MS);
+  }
+
+  private stopHealthCheck(): void {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
+    }
+  }
+
   private cleanup(): void {
     // Stop reconnect timer
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
+
+    // Stop health check
+    this.stopHealthCheck();
 
     // Stop elapsed timer
     this.stopElapsedTimer();
@@ -304,6 +358,16 @@ export class RealtimeCallService {
 
   private scheduleReconnect(): void {
     if (this.reconnectTimeout) return;
+    if (this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+      this.handleError(new CallError("Connection lost. Tap retry to reconnect.", ErrorCode.MAX_RECONNECT));
+      return;
+    }
+
+    const delay = Math.min(
+      RECONNECT_BASE_DELAY_MS * Math.pow(2, this.reconnectAttempts),
+      RECONNECT_MAX_DELAY_MS
+    );
+    this.reconnectAttempts++;
 
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectTimeout = null;
@@ -311,7 +375,7 @@ export class RealtimeCallService {
         this.connecting = false;
         this.connect(this.lastPersonaId);
       }
-    }, RECONNECT_DELAY_MS);
+    }, delay);
   }
 
   private startElapsedTimer(): void {

@@ -8,6 +8,8 @@ export type CallStatus =
   | "error"
   | "ended";
 
+export type ConnectionQuality = "good" | "degraded" | "unknown";
+
 export type PersonaId = "maya" | "arjun" | "luna";
 
 export type RealtimeCallController = {
@@ -15,6 +17,7 @@ export type RealtimeCallController = {
   muted: boolean;
   elapsedSeconds: number;
   errorMessage?: string;
+  connectionQuality: ConnectionQuality;
   connect(personaId: PersonaId): Promise<void>;
   disconnect(): void;
   setMuted(muted: boolean): void;

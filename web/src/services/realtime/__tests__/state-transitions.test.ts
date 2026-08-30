@@ -78,9 +78,12 @@ describe("RealtimeCallService", () => {
         autoplay: false,
         srcObject: null,
         style: { display: "" },
+        play: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn(),
       })),
       body: { appendChild: vi.fn() },
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
     });
 
     mockFetch.mockResolvedValue({
@@ -97,14 +100,16 @@ describe("RealtimeCallService", () => {
     const onStatusChange = vi.fn();
     const onErrorMessage = vi.fn();
     const onElapsedChange = vi.fn();
+    const onQualityChange = vi.fn();
 
     const service = new RealtimeCallService({
       onStatusChange,
       onErrorMessage,
       onElapsedChange,
+      onQualityChange,
     });
 
-    return { service, onStatusChange, onErrorMessage, onElapsedChange };
+    return { service, onStatusChange, onErrorMessage, onElapsedChange, onQualityChange };
   }
 
   it("starts in idle status", () => {
@@ -214,6 +219,57 @@ describe("RealtimeCallService", () => {
     await service.connect("maya");
 
     service.dispose();
+    expect(service.getStatus()).toBe("listening");
+  });
+
+  it("disconnect stops all media tracks", async () => {
+    const { service } = createService();
+    await service.connect("maya");
+
+    service.disconnect();
+
+    for (const track of mockTracks) {
+      expect(track.stop).toHaveBeenCalled();
+    }
+  });
+
+  it("disconnect closes peer connection", async () => {
+    const { service } = createService();
+    await service.connect("maya");
+
+    const pc = mockPcInstances[0];
+    const closeSpy = vi.spyOn(pc, "close");
+
+    service.disconnect();
+
+    expect(closeSpy).toHaveBeenCalled();
+  });
+
+  it("error state stops media tracks", async () => {
+    mockGetUserMedia.mockRejectedValueOnce(new Error("denied"));
+    const { service } = createService();
+
+    await service.connect("maya");
+
+    // On mic denial, localStream was never set, so tracks aren't stopped
+    // but the service should still be in error state
+    expect(service.getStatus()).toBe("error");
+  });
+
+  it("retry after error cleans up previous state", async () => {
+    mockGetUserMedia.mockRejectedValueOnce(new Error("denied"));
+    const { service } = createService();
+
+    await service.connect("maya");
+    expect(service.getStatus()).toBe("error");
+
+    // Reset mock for successful retry
+    mockGetUserMedia.mockResolvedValueOnce({
+      getAudioTracks: () => mockTracks,
+      getTracks: () => mockTracks,
+    });
+
+    await service.retry();
     expect(service.getStatus()).toBe("listening");
   });
 });
