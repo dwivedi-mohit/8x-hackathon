@@ -1,95 +1,70 @@
 import type { Persona } from "../../types/persona.js";
+import dadajiImg from "../../assets/personas/dadaji.jpg";
 
-export const preparedPersonas: Persona[] = [
-  {
-    id: "maya",
-    name: "Maya",
-    tagline: "Warm, grounded, and reflective",
-    description:
-      "A gentle companion who helps you slow down, breathe, and untangle overwhelming thoughts one manageable step at a time.",
-    voiceStyle: "Soft, steady, soothing, and unhurried",
-    suggestedPrompt:
-      "I’ve had an overwhelming week and my head won't stop racing. Where do I even begin?",
-    traits: ["Calm", "Reflective", "Grounding", "Patient"],
-    avatarGradient: {
-      start: "#A78BFA",
-      end: "#F4A261",
-      glow: "rgba(167, 139, 250, 0.35)",
-      ring: "#DDD6FE",
-    },
-    disclosure:
-      "Maya is a fictional AI character created to offer comforting conversation. Not a real person, therapist, or emergency service.",
+export const defaultDemoPersona: Persona = {
+  id: "dadaji",
+  name: "Dada Ji",
+  tagline: "Grandparent • 3D Companion",
+  description:
+    "Dada Ji is your loving grandfather. In calls, he shares timeless wisdom, warm encouragement, and gentle comfort whenever you need him.",
+  voiceStyle: "Deep, warm, steady, and comforting",
+  suggestedPrompt:
+    "Dada Ji, how do I stay calm and focused when things feel overwhelming?",
+  photoUrl: dadajiImg,
+  traits: ["Wise", "Patient", "Loving", "Comforting"],
+  avatarGradient: {
+    start: "#F59E0B",
+    end: "#B45309",
+    glow: "rgba(245, 158, 11, 0.35)",
+    ring: "#FDE68A",
   },
-  {
-    id: "arjun",
-    name: "Arjun",
-    tagline: "Direct, thoughtful, and balanced",
-    description:
-      "A clear-headed sounding board who asks the right clarifying question and helps you explore practical options with honest perspective.",
-    voiceStyle: "Crisp, warm, thoughtful, and confident",
-    suggestedPrompt:
-      "I’m stuck between two choices and can’t decide which path to take first.",
-    traits: ["Practical", "Direct", "Insightful", "Balanced"],
-    avatarGradient: {
-      start: "#F4A261",
-      end: "#E76F51",
-      glow: "rgba(244, 162, 97, 0.35)",
-      ring: "#FED7AA",
-    },
-    disclosure:
-      "Arjun is a fictional AI character created to offer practical sounding-board conversation. Not a real person, coach, or advisor.",
+  clonedVoice: {
+    fileName: "dadaji_voice.wav",
+    durationSeconds: 15.4,
+    isExtractedFromVideo: false,
+    audioBlobUrl: "",
+    pitchEstimateHz: 120,
+    sampleRate: 44100,
+    channels: 1,
+    clarityPercent: 96,
   },
-  {
-    id: "luna",
-    name: "Luna",
-    tagline: "Gentle, poetic, and hopeful",
-    description:
-      "An empathetic listener who finds gentle re-framings in difficult moments and offers quiet optimism when things feel heavy.",
-    voiceStyle: "Melodic, empathetic, gentle, and reflective",
-    suggestedPrompt:
-      "I feel like I’m being way too hard on myself today.",
-    traits: ["Poetic", "Empathetic", "Gentle", "Hopeful"],
-    avatarGradient: {
-      start: "#818CF8",
-      end: "#C084FC",
-      glow: "rgba(192, 132, 252, 0.35)",
-      ring: "#E9D5FF",
-    },
-    disclosure:
-      "Luna is a fictional AI character created to offer poetic and hopeful conversation. Not a real person, therapist, or medical service.",
-  },
-];
+  disclosure:
+    "Dada Ji is your personalized AI grandfather companion created to offer warm, comforting, and wise conversation.",
+};
 
-const CACHE_KEY = "echo_custom_personas_v2";
+export const preparedPersonas: Persona[] = [defaultDemoPersona];
+
+const CACHE_KEY = "echo_custom_personas_v4";
 
 const loadCachedPersonas = (): Persona[] => {
-  if (typeof window === "undefined") return [];
+  if (typeof window === "undefined") return [defaultDemoPersona];
   try {
-    // Clear old legacy test keys
-    localStorage.removeItem("echo_custom_personas_v1");
-
     const raw = localStorage.getItem(CACHE_KEY);
-    if (!raw) return [];
+    if (!raw) return [defaultDemoPersona];
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
+    if (!Array.isArray(parsed) || parsed.length === 0) return [defaultDemoPersona];
 
-    // Filter out dummy/demo test entries (e.g. "dfghj", "test")
+    // Filter out dummy/demo test entries
     const cleanList = parsed.filter(
       (p: Persona) =>
         p &&
         p.name &&
         p.name.trim().length > 1 &&
-        !/^(dfghj|asdf|test|dummy|abc|demo)$/i.test(p.name.trim())
+        !/^(dfghj|asdf|test|dummy|abc)$/i.test(p.name.trim())
     );
 
-    if (cleanList.length !== parsed.length) {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(cleanList));
+    const hasDadaJi = cleanList.some(
+      (p: Persona) => p.id === "dadaji" || p.name.toLowerCase().includes("dada")
+    );
+    if (!hasDadaJi) {
+      cleanList.unshift(defaultDemoPersona);
     }
 
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cleanList));
     return cleanList;
   } catch (err) {
     console.warn("Failed to load cached personas:", err);
-    return [];
+    return [defaultDemoPersona];
   }
 };
 
@@ -115,12 +90,15 @@ export const addCustomPersona = (persona: Persona): void => {
 };
 
 export const getAllPersonas = (): Persona[] => {
+  if (customPersonasStore.length === 0) {
+    return [defaultDemoPersona];
+  }
   return [...customPersonasStore];
 };
 
 export const getPersonaById = (id: string): Persona => {
-  const custom = customPersonasStore.find((p) => p.id === id);
-  if (custom) return custom;
-  const found = preparedPersonas.find((p) => p.id === id);
-  return found || customPersonasStore[0] || preparedPersonas[0];
+  const found = customPersonasStore.find((p) => p.id === id);
+  if (found) return found;
+  if (id === "dadaji") return defaultDemoPersona;
+  return customPersonasStore[0] || defaultDemoPersona;
 };

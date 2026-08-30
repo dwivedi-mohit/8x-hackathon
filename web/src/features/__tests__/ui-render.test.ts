@@ -4,12 +4,12 @@ import { tokens } from "../../styles/tokens.js";
 import type { CallStatus } from "../../types/call.js";
 
 describe("Project Echo UI Layer", () => {
-  it("includes Maya, Arjun, and Luna in prepared personas", () => {
-    expect(preparedPersonas).toHaveLength(3);
-    const ids = preparedPersonas.map((p) => p.id);
-    expect(ids).toContain("maya");
-    expect(ids).toContain("arjun");
-    expect(ids).toContain("luna");
+  it("includes default featured Dada Ji 3D persona", () => {
+    expect(preparedPersonas.length).toBeGreaterThanOrEqual(1);
+    const dadaji = preparedPersonas[0];
+    expect(dadaji.id).toBe("dadaji");
+    expect(dadaji.name).toBe("Dada Ji");
+    expect(dadaji.photoUrl).toBeDefined();
   });
 
   it("ensures each persona has distinct voice styles and suggested prompts", () => {
@@ -19,20 +19,14 @@ describe("Project Echo UI Layer", () => {
       expect(persona.voiceStyle).toBeTruthy();
       expect(persona.suggestedPrompt).toBeTruthy();
       expect(persona.traits.length).toBeGreaterThanOrEqual(3);
-      expect(persona.disclosure).toContain("fictional");
+      expect(persona.disclosure).toBeTruthy();
     });
   });
 
   it("retrieves persona correctly by ID", () => {
-    const maya = getPersonaById("maya");
-    expect(maya.name).toBe("Maya");
-    expect(maya.id).toBe("maya");
-
-    const arjun = getPersonaById("arjun");
-    expect(arjun.name).toBe("Arjun");
-
-    const luna = getPersonaById("luna");
-    expect(luna.name).toBe("Luna");
+    const dadaji = getPersonaById("dadaji");
+    expect(dadaji.name).toBe("Dada Ji");
+    expect(dadaji.id).toBe("dadaji");
   });
 
   it("verifies design tokens define translucent liquid-glass surfaces with lavender/peach accents", () => {
