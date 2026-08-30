@@ -78,9 +78,12 @@ describe("RealtimeCallService", () => {
         autoplay: false,
         srcObject: null,
         style: { display: "" },
+        play: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn(),
       })),
       body: { appendChild: vi.fn() },
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
     });
 
     mockFetch.mockResolvedValue({
