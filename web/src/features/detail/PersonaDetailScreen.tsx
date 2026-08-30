@@ -8,9 +8,9 @@ import { Button } from "../../components/Button.js";
 import { tokens } from "../../styles/tokens.js";
 
 type PersonaDetailScreenProps = {
-  personaId: PersonaId;
+  personaId: PersonaId | string;
   onBack: () => void;
-  onStartCall: (personaId: PersonaId) => void;
+  onStartCall: (personaId: PersonaId | string) => void;
 };
 
 export const PersonaDetailScreen: React.FC<PersonaDetailScreenProps> = ({

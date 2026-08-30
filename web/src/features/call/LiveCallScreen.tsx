@@ -218,9 +218,26 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
             {persona.tagline}
           </p>
 
+          {persona.clonedVoice && (
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: 600,
+                color: tokens.colors.peachPrimary,
+                backgroundColor: tokens.colors.surfacePeachTint,
+                border: `1px solid ${tokens.colors.borderPeach}`,
+                padding: "2px 10px",
+                borderRadius: tokens.radii.full,
+                marginTop: "6px",
+              }}
+            >
+              🎬 Cloned Voice: {persona.clonedVoice.fileName} ({persona.clonedVoice.pitchEstimateHz}Hz)
+            </span>
+          )}
+
           {/* Dynamic Audio Visualizer */}
           <div style={{ marginTop: tokens.spacing.md }}>
-            <CallVisualizer status={status} accentColor={persona.avatarGradient.start} />
+            <CallVisualizer status={status} accentColor={persona.avatarGradient?.start || tokens.colors.lavenderPrimary} />
           </div>
         </div>
 

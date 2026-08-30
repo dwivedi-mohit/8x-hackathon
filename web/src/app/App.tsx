@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import type { PersonaId, AppScreen } from "../types/index.js";
+import type { Persona } from "../types/persona.js";
 import { MobileContainer } from "../components/MobileContainer.js";
 import { BottomNavigation } from "../components/BottomNavigation.js";
 import { HomeScreen } from "../features/home/HomeScreen.js";
@@ -8,39 +9,38 @@ import { LiveCallScreen } from "../features/call/LiveCallScreen.js";
 import { EndedCallScreen } from "../features/ended/EndedCallScreen.js";
 import { CreatePersonaScreen } from "../features/create/CreatePersonaScreen.js";
 import { CallHistoryScreen } from "../features/history/CallHistoryScreen.js";
-import { getPersonaById } from "../features/persona/personasData.js";
+import { getPersonaById, addCustomPersona } from "../features/persona/personasData.js";
 import { useRealtimeCall } from "../hooks/useRealtimeCall.js";
 import "../styles/theme.css";
 
 export const App: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>("home");
-  const [selectedPersonaId, setSelectedPersonaId] = useState<PersonaId>("maya");
+  const [selectedPersonaId, setSelectedPersonaId] = useState<PersonaId | string>("maya");
   const [callDurationSeconds, setCallDurationSeconds] = useState<number>(0);
   const [lastCall, setLastCall] = useState<{ personaId: PersonaId; durationSeconds: number }>();
   const callController = useRealtimeCall();
   const demoMode = import.meta.env.VITE_DEMO_MODE === "true";
 
   // Navigation handlers
-  const handleSelectPersona = (id: PersonaId) => {
+  const handleSelectPersona = (id: PersonaId | string) => {
     setSelectedPersonaId(id);
     setCurrentScreen("persona-detail");
   };
 
-  const handleStartCall = (id: PersonaId) => {
+  const handleStartCall = (id: PersonaId | string) => {
     setSelectedPersonaId(id);
     setCallDurationSeconds(0);
     setCurrentScreen("call");
     if (!demoMode) {
-      void callController.connect(id);
+      void callController.connect(id as PersonaId);
     }
   };
 
   const handleCallEnded = () => {
     // Transition to ended screen
-    setCallDurationSeconds(callController.elapsedSeconds);
     const durationSeconds = callController.elapsedSeconds;
     setCallDurationSeconds(durationSeconds);
-    setLastCall({ personaId: selectedPersonaId, durationSeconds });
+    setLastCall({ personaId: selectedPersonaId as PersonaId, durationSeconds });
     setCurrentScreen("ended");
   };
 
@@ -52,10 +52,19 @@ export const App: React.FC = () => {
     setCurrentScreen("create-persona");
   };
 
+  const handleCreatedCustomPersona = (newPersona: Persona) => {
+    addCustomPersona(newPersona);
+  };
+
+  const handleStartCallWithNewPersona = (newPersona: Persona) => {
+    addCustomPersona(newPersona);
+    handleStartCall(newPersona.id);
+  };
+
   const dockActive = currentScreen === "create-persona" ? "create" : currentScreen === "call-history" ? "history" : "home";
   const showBottomNavigation = currentScreen !== "call";
 
-  const selectedPersona = getPersonaById(selectedPersonaId);
+  const selectedPersona = getPersonaById(selectedPersonaId as string);
 
   return (
     <MobileContainer
@@ -78,7 +87,7 @@ export const App: React.FC = () => {
 
       {currentScreen === "persona-detail" && (
         <PersonaDetailScreen
-          personaId={selectedPersonaId}
+          personaId={selectedPersonaId as PersonaId}
           onBack={handleGoHome}
           onStartCall={handleStartCall}
         />
@@ -86,7 +95,7 @@ export const App: React.FC = () => {
 
       {currentScreen === "call" && (
         <LiveCallScreen
-          personaId={selectedPersonaId}
+          personaId={selectedPersonaId as PersonaId}
           personaName={selectedPersona.name}
           onCallEnd={handleCallEnded}
           controller={demoMode ? undefined : callController}
@@ -95,7 +104,7 @@ export const App: React.FC = () => {
 
       {currentScreen === "ended" && (
         <EndedCallScreen
-          personaId={selectedPersonaId}
+          personaId={selectedPersonaId as PersonaId}
           durationSeconds={callDurationSeconds}
           onCallAgain={handleStartCall}
           onChooseAnother={handleGoHome}
@@ -106,7 +115,8 @@ export const App: React.FC = () => {
       {currentScreen === "create-persona" && (
         <CreatePersonaScreen
           onBack={handleGoHome}
-          onCreated={handleGoHome}
+          onCreated={handleCreatedCustomPersona}
+          onStartCallWithNewPersona={handleStartCallWithNewPersona}
         />
       )}
 

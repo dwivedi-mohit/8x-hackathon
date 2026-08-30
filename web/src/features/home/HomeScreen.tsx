@@ -1,6 +1,6 @@
 import React from "react";
 import type { PersonaId } from "../../types/call.js";
-import { preparedPersonas } from "../persona/personasData.js";
+import { getAllPersonas } from "../persona/personasData.js";
 import { AppHeader } from "../../components/AppHeader.js";
 import { PersonaAvatar } from "../../components/PersonaAvatar.js";
 import { SafetyDisclosure } from "../../components/SafetyDisclosure.js";
@@ -8,8 +8,8 @@ import { Button } from "../../components/Button.js";
 import { tokens } from "../../styles/tokens.js";
 
 type HomeScreenProps = {
-  onSelectPersona: (personaId: PersonaId) => void;
-  onQuickCall: (personaId: PersonaId) => void;
+  onSelectPersona: (personaId: PersonaId | string) => void;
+  onQuickCall: (personaId: PersonaId | string) => void;
   onCreatePersona: () => void;
 };
 
@@ -18,6 +18,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onQuickCall,
   onCreatePersona,
 }) => {
+  const personas = getAllPersonas();
+
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100%", flex: 1 }}>
       <AppHeader
@@ -61,21 +63,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
         {/* Persona Cards List */}
         <div style={{ display: "flex", flexDirection: "column", gap: tokens.spacing.md }}>
-          {preparedPersonas.map((persona) => (
+          {personas.map((persona) => (
             <div
               key={persona.id}
-              onClick={() => onSelectPersona(persona.id)}
+              onClick={() => onSelectPersona(persona.id as PersonaId)}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
-                  onSelectPersona(persona.id);
+                  onSelectPersona(persona.id as PersonaId);
                 }
               }}
               style={{
                 backgroundColor: tokens.colors.surface,
                 borderRadius: tokens.radii.card,
-                border: `1.5px solid ${tokens.colors.border}`,
+                border: `1.5px solid ${persona.isCustom ? tokens.colors.borderPeach : tokens.colors.border}`,
                 padding: tokens.spacing.lg,
                 boxShadow: tokens.shadows.card,
                 backdropFilter: "blur(18px) saturate(145%)",
@@ -91,15 +93,32 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 <PersonaAvatar persona={persona} size="md" />
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <h3
-                      style={{
-                        fontSize: tokens.typography.subheading.fontSize,
-                        fontWeight: 700,
-                        color: tokens.colors.textPrimary,
-                      }}
-                    >
-                      {persona.name}
-                    </h3>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <h3
+                        style={{
+                          fontSize: tokens.typography.subheading.fontSize,
+                          fontWeight: 700,
+                          color: tokens.colors.textPrimary,
+                        }}
+                      >
+                        {persona.name}
+                      </h3>
+                      {persona.isCustom && (
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: 700,
+                            color: tokens.colors.peachPrimary,
+                            backgroundColor: tokens.colors.surfacePeachTint,
+                            padding: "2px 6px",
+                            borderRadius: tokens.radii.full,
+                            border: `1px solid ${tokens.colors.borderPeach}`,
+                          }}
+                        >
+                          Custom
+                        </span>
+                      )}
+                    </div>
                     <span
                       style={{
                         fontSize: "12px",
@@ -158,6 +177,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                       {trait}
                     </span>
                   ))}
+                  {persona.clonedVoice && (
+                    <span
+                      style={{
+                        backgroundColor: tokens.colors.surfacePeachTint,
+                        color: tokens.colors.peachPrimary,
+                        fontSize: "11px",
+                        fontWeight: 700,
+                        padding: "3px 8px",
+                        borderRadius: tokens.radii.sm,
+                      }}
+                    >
+                      🎬 Cloned
+                    </span>
+                  )}
                 </div>
 
                 <Button
@@ -165,7 +198,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   variant="primary"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onQuickCall(persona.id);
+                    onQuickCall(persona.id as PersonaId);
                   }}
                   leftIcon="📞"
                 >
@@ -232,7 +265,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 marginTop: "2px",
               }}
             >
-              Design a custom character with photo and personality.
+              Step-by-step wizard with audio/video voice cloning.
             </p>
           </div>
           <span style={{ fontSize: "20px", color: tokens.colors.peachPrimary }}>+</span>

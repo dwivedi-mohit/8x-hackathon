@@ -40,7 +40,7 @@ export const PersonaAvatar: React.FC<PersonaAvatarProps> = ({
         justifyContent: "center",
       }}
     >
-      {/* Outer ambient glow halo for call screen */}
+      {/* Outer ambient glow halo for call screen or active speaking/listening */}
       {(size === "call" || isSpeaking || isListening) && (
         <div
           className={isSpeaking ? "anim-ambient-pulse" : isListening ? "anim-listening-glow" : ""}
@@ -49,7 +49,7 @@ export const PersonaAvatar: React.FC<PersonaAvatarProps> = ({
             width: `${dim.size + 36}px`,
             height: `${dim.size + 36}px`,
             borderRadius: "50%",
-            background: `radial-gradient(circle, ${persona.avatarGradient.glow} 0%, rgba(250, 248, 245, 0) 70%)`,
+            background: `radial-gradient(circle, ${persona.avatarGradient?.glow || "rgba(167, 139, 250, 0.35)"} 0%, rgba(250, 248, 245, 0) 70%)`,
             pointerEvents: "none",
             zIndex: 0,
           }}
@@ -62,20 +62,35 @@ export const PersonaAvatar: React.FC<PersonaAvatarProps> = ({
           width: `${dim.size}px`,
           height: `${dim.size}px`,
           borderRadius: "50%",
-          background: `linear-gradient(135deg, ${persona.avatarGradient.start} 0%, ${persona.avatarGradient.end} 100%)`,
+          background: persona.photoUrl
+            ? "transparent"
+            : `linear-gradient(135deg, ${persona.avatarGradient?.start || "#A78BFA"} 0%, ${persona.avatarGradient?.end || "#F4A261"} 100%)`,
           border: `${dim.ring}px solid ${tokens.colors.surface}`,
-          boxShadow: `0 8px 24px ${persona.avatarGradient.glow}, 0 2px 8px rgba(31, 29, 43, 0.08)`,
+          boxShadow: `0 8px 24px ${persona.avatarGradient?.glow || "rgba(167, 139, 250, 0.3)"}, 0 2px 8px rgba(31, 29, 43, 0.08)`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           color: tokens.colors.textInverse,
           fontSize: `${dim.font}px`,
           fontWeight: 700,
+          overflow: "hidden",
           zIndex: 1,
           userSelect: "none",
         }}
       >
-        <span>{persona.name.charAt(0)}</span>
+        {persona.photoUrl ? (
+          <img
+            src={persona.photoUrl}
+            alt={persona.name}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+          />
+        ) : (
+          <span>{persona.name.charAt(0)}</span>
+        )}
       </div>
     </div>
   );

@@ -8,9 +8,9 @@ import { Button } from "../../components/Button.js";
 import { tokens } from "../../styles/tokens.js";
 
 type EndedCallScreenProps = {
-  personaId: PersonaId;
+  personaId: PersonaId | string;
   durationSeconds: number;
-  onCallAgain: (personaId: PersonaId) => void;
+  onCallAgain: (personaId: PersonaId | string) => void;
   onChooseAnother: () => void;
   onGoHome: () => void;
 };

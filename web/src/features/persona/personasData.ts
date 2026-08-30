@@ -60,7 +60,24 @@ export const preparedPersonas: Persona[] = [
   },
 ];
 
+let customPersonasStore: Persona[] = [];
+
+export const addCustomPersona = (persona: Persona): void => {
+  const existingIdx = customPersonasStore.findIndex((p) => p.id === persona.id);
+  if (existingIdx >= 0) {
+    customPersonasStore[existingIdx] = persona;
+  } else {
+    customPersonasStore.unshift(persona);
+  }
+};
+
+export const getAllPersonas = (): Persona[] => {
+  return [...customPersonasStore, ...preparedPersonas];
+};
+
 export const getPersonaById = (id: string): Persona => {
+  const custom = customPersonasStore.find((p) => p.id === id);
+  if (custom) return custom;
   const found = preparedPersonas.find((p) => p.id === id);
   return found || preparedPersonas[0];
 };
