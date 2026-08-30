@@ -21,11 +21,13 @@ export type RealtimeCallController = {
   retry(): Promise<void>;
 };
 
-export type CallBackendRequest = {
-  personaId: PersonaId;
-  sdp: string;
-};
+export type CallBackendRequest = { personaId: PersonaId; sdp: string };
+export type CallBackendResponse = { sdp: string };
 
-export type CallBackendResponse = {
-  sdp: string;
+/** Shared boundary between the visual call screen and the live call controller. */
+export type CallUiProps = {
+  personaId: PersonaId;
+  personaName: string;
+  onCallEnd?: () => void;
+  controller?: RealtimeCallController;
 };

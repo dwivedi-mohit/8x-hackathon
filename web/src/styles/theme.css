@@ -1,0 +1,129 @@
+:root {
+  --canvas-bg: #FAF8F5;
+  --surface-bg: #FFFFFF;
+  --surface-raised: #FCFAF7;
+  --surface-hover: #F7F3EE;
+  --surface-lavender: #F4F0FD;
+  --surface-peach: #FFF5ED;
+
+  --border-color: #EBE5DC;
+  --border-subtle: #F0ECE6;
+  --border-lavender: #DDD6FE;
+  --border-peach: #FED7AA;
+
+  --text-primary: #1F1D2B;
+  --text-secondary: #5F5B73;
+  --text-tertiary: #8C88A0;
+
+  --lavender-primary: #7C3AED;
+  --lavender-hover: #6D28D9;
+  --lavender-light: #A78BFA;
+  --lavender-soft: #EDE9FE;
+
+  --peach-primary: #F97316;
+  --peach-warm: #F4A261;
+  --peach-soft: #FFEDD5;
+
+  --shadow-card: 0 4px 16px rgba(31, 29, 43, 0.05), 0 1px 4px rgba(31, 29, 43, 0.03);
+  --shadow-hover: 0 8px 24px rgba(124, 58, 237, 0.08), 0 2px 6px rgba(31, 29, 43, 0.04);
+  --shadow-elevated: 0 12px 32px rgba(31, 29, 43, 0.08), 0 4px 12px rgba(31, 29, 43, 0.04);
+
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --min-touch-target: 44px;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background-color: #F0EAE1;
+  font-family: var(--font-family);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  touch-action: manipulation;
+}
+
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--lavender-primary);
+  outline-offset: 2px;
+}
+
+/* Animations */
+@keyframes ambientPulse {
+  0% {
+    transform: scale(0.98);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(0.98);
+    opacity: 0.6;
+  }
+}
+
+@keyframes speakingWave {
+  0%, 100% {
+    height: 12px;
+  }
+  50% {
+    height: 38px;
+  }
+}
+
+@keyframes listeningGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.35);
+  }
+  70% {
+    box-shadow: 0 0 0 22px rgba(124, 58, 237, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0);
+  }
+}
+
+@keyframes thinkingShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.anim-ambient-pulse {
+  animation: ambientPulse 4s ease-in-out infinite;
+}
+
+.anim-listening-glow {
+  animation: listeningGlow 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Reduced motion overrides */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .anim-ambient-pulse, .anim-listening-glow {
+    animation: none !important;
+  }
+}
