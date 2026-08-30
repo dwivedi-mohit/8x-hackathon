@@ -60,7 +60,49 @@ export const preparedPersonas: Persona[] = [
   },
 ];
 
-let customPersonasStore: Persona[] = [];
+const CACHE_KEY = "echo_custom_personas_v2";
+
+const loadCachedPersonas = (): Persona[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    // Clear old legacy test keys
+    localStorage.removeItem("echo_custom_personas_v1");
+
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    // Filter out dummy/demo test entries (e.g. "dfghj", "test")
+    const cleanList = parsed.filter(
+      (p: Persona) =>
+        p &&
+        p.name &&
+        p.name.trim().length > 1 &&
+        !/^(dfghj|asdf|test|dummy|abc|demo)$/i.test(p.name.trim())
+    );
+
+    if (cleanList.length !== parsed.length) {
+      localStorage.setItem(CACHE_KEY, JSON.stringify(cleanList));
+    }
+
+    return cleanList;
+  } catch (err) {
+    console.warn("Failed to load cached personas:", err);
+    return [];
+  }
+};
+
+const saveCachedPersonas = (personas: Persona[]): void => {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(personas));
+  } catch (err) {
+    console.warn("Failed to cache personas:", err);
+  }
+};
+
+let customPersonasStore: Persona[] = loadCachedPersonas();
 
 export const addCustomPersona = (persona: Persona): void => {
   const existingIdx = customPersonasStore.findIndex((p) => p.id === persona.id);
@@ -69,15 +111,16 @@ export const addCustomPersona = (persona: Persona): void => {
   } else {
     customPersonasStore.unshift(persona);
   }
+  saveCachedPersonas(customPersonasStore);
 };
 
 export const getAllPersonas = (): Persona[] => {
-  return [...customPersonasStore, ...preparedPersonas];
+  return [...customPersonasStore];
 };
 
 export const getPersonaById = (id: string): Persona => {
   const custom = customPersonasStore.find((p) => p.id === id);
   if (custom) return custom;
   const found = preparedPersonas.find((p) => p.id === id);
-  return found || preparedPersonas[0];
+  return found || customPersonasStore[0] || preparedPersonas[0];
 };

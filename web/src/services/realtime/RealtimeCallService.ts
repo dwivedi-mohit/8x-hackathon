@@ -7,7 +7,7 @@ const RECONNECT_MAX_DELAY_MS = 8000;
 const MAX_RECONNECT_ATTEMPTS = 5;
 const HEALTH_CHECK_INTERVAL_MS = 5000;
 
-const ErrorCode = {
+export const ErrorCode = {
   MIC_DENIED: "mic-denied",
   NETWORK_ERROR: "network-error",
   SERVER_ERROR: "server-error",
@@ -85,6 +85,9 @@ export class RealtimeCallService {
   }
 
   disconnect(): void {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
     this.cleanup();
     this.setStatus("ended");
   }
@@ -129,24 +132,22 @@ export class RealtimeCallService {
       }
     };
 
-    // 5. Handle data channel (optional, graceful degradation)
+    // 5. Handle data channel
     pc.ondatachannel = (event) => {
       this.setupDataChannel(event.channel);
     };
 
-    // Also create a data channel from our side in case server expects it
     try {
       const dc = pc.createDataChannel("session");
       this.setupDataChannel(dc);
     } catch {
-      // Data channel creation failed — continue without it
+      // ignore
     }
 
     // 6. Handle connection state changes
     pc.oniceconnectionstatechange = () => {
       const state = pc.iceConnectionState;
 
-      // Report quality based on ICE state
       if (state === "connected" || state === "completed") {
         this.callbacks.onQualityChange("good");
       } else if (state === "disconnected") {
@@ -206,14 +207,14 @@ export class RealtimeCallService {
       throw new CallError("Network error. Check your connection.", ErrorCode.NETWORK_ERROR);
     }
 
-    if (!response.sdp) {
+    if (!response || !response.sdp) {
       throw new CallError("Invalid server response.", ErrorCode.INVALID_RESPONSE);
     }
 
     // 10. Set remote answer
     await pc.setRemoteDescription({ type: "answer", sdp: response.sdp });
 
-    // 11. Connected — transition to listening
+    // 11. Connected
     this.reconnectAttempts = 0;
     this.setStatus("listening");
     this.startElapsedTimer();
@@ -221,7 +222,7 @@ export class RealtimeCallService {
   }
 
   private setupDataChannel(channel: RTCDataChannel): void {
-    if (this.dc) return; // Already have one
+    if (this.dc) return;
     this.dc = channel;
 
     channel.onmessage = (event) => {
@@ -229,7 +230,7 @@ export class RealtimeCallService {
         const data = JSON.parse(event.data);
         this.handleDataChannelMessage(data);
       } catch {
-        // Non-JSON message — ignore
+        // ignore
       }
     };
 
@@ -247,7 +248,6 @@ export class RealtimeCallService {
         this.setStatus("listening");
         break;
       case "input_audio_buffer.speech_stopped":
-        // Speech ended, AI will start thinking/responding
         break;
       case "response.created":
         this.setStatus("thinking");
@@ -269,6 +269,7 @@ export class RealtimeCallService {
 
   private handleError(err: unknown): void {
     const message = err instanceof CallError ? err.message : "An unexpected error occurred.";
+    this.cleanup();
     this.setStatus("error");
     this.setErrorMessage(message);
   }
@@ -298,25 +299,19 @@ export class RealtimeCallService {
   }
 
   private cleanup(): void {
-    // Stop reconnect timer
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
 
-    // Stop health check
     this.stopHealthCheck();
-
-    // Stop elapsed timer
     this.stopElapsedTimer();
 
-    // Close data channel
     if (this.dc) {
-      try { this.dc.close(); } catch { /* already closed */ }
+      try { this.dc.close(); } catch { /* ignore */ }
       this.dc = null;
     }
 
-    // Stop local tracks
     if (this.localStream) {
       for (const track of this.localStream.getTracks()) {
         track.stop();
@@ -324,13 +319,11 @@ export class RealtimeCallService {
       this.localStream = null;
     }
 
-    // Close peer connection
     if (this.pc) {
-      try { this.pc.close(); } catch { /* already closed */ }
+      try { this.pc.close(); } catch { /* ignore */ }
       this.pc = null;
     }
 
-    // Remove audio element
     this.audioManager.detach();
   }
 
@@ -343,7 +336,7 @@ export class RealtimeCallService {
 
       const timeout = setTimeout(() => {
         pc.onicegatheringstatechange = null;
-        resolve(); // Resolve anyway — proceed with whatever candidates we have
+        resolve();
       }, ICE_GATHERING_TIMEOUT_MS);
 
       pc.onicegatheringstatechange = () => {
@@ -369,11 +362,15 @@ export class RealtimeCallService {
     );
     this.reconnectAttempts++;
 
-    this.reconnectTimeout = setTimeout(() => {
+    this.reconnectTimeout = setTimeout(async () => {
       this.reconnectTimeout = null;
-      if (this.lastPersonaId && (this.status === "reconnecting" || this.status === "error")) {
-        this.connecting = false;
-        this.connect(this.lastPersonaId);
+      if (this.lastPersonaId) {
+        try {
+          this.cleanup();
+          await this.establishConnection(this.lastPersonaId);
+        } catch {
+          // retry failed
+        }
       }
     }, delay);
   }
@@ -381,6 +378,8 @@ export class RealtimeCallService {
   private startElapsedTimer(): void {
     this.stopElapsedTimer();
     this.elapsedSeconds = 0;
+    this.callbacks.onElapsedChange(0);
+
     this.elapsedInterval = setInterval(() => {
       this.elapsedSeconds++;
       this.callbacks.onElapsedChange(this.elapsedSeconds);
@@ -392,11 +391,9 @@ export class RealtimeCallService {
       clearInterval(this.elapsedInterval);
       this.elapsedInterval = null;
     }
-    this.elapsedSeconds = 0;
   }
 
   private setStatus(status: CallStatus): void {
-    if (this.status === status) return;
     this.status = status;
     this.callbacks.onStatusChange(status);
   }
@@ -408,7 +405,6 @@ export class RealtimeCallService {
 
 class CallError extends Error {
   code: string;
-
   constructor(message: string, code: string) {
     super(message);
     this.name = "CallError";

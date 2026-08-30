@@ -110,183 +110,82 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
         display: "flex",
         flexDirection: "column",
         minHeight: "100%",
+        height: "100%",
         flex: 1,
-        backgroundColor: tokens.colors.canvas,
+        backgroundColor: "transparent",
+        justifyContent: "space-between",
+        paddingTop: "20px",
+        paddingBottom: "36px",
+        position: "relative",
+        overflow: "hidden",
       }}
     >
-      {/* Top Call Navigation Bar */}
-      <header
-        style={{
-          padding: `${tokens.spacing.md} ${tokens.spacing.xl}`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          backgroundColor: tokens.colors.surface,
-          borderBottom: `1px solid ${tokens.colors.borderSubtle}`,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: tokens.spacing.sm }}>
-          <span
-            style={{
-              width: "10px",
-              height: "10px",
-              borderRadius: "50%",
-              backgroundColor: tokens.colors.lavenderPrimary,
-            }}
-          />
-          <span style={{ fontWeight: 700, fontSize: "16px", color: tokens.colors.textPrimary }}>
-            {personaName || persona.name}
-          </span>
-        </div>
-
-        <TimerDisplay seconds={elapsedSeconds} />
-      </header>
-
-      {/* Main Call Viewport */}
+      {/* Top-Right Champagne Gold Sunlight Glow Accent */}
       <div
         style={{
-          padding: `${tokens.spacing.xl} ${tokens.spacing.xl} ${tokens.spacing.md}`,
+          position: "absolute",
+          top: "-50px",
+          right: "-50px",
+          width: "260px",
+          height: "260px",
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(255, 230, 168, 0.4) 0%, rgba(255, 253, 248, 0.15) 50%, transparent 75%)",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+
+      {/* Central Persona Avatar (3D Hologram + Name) */}
+      <div
+        style={{
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          justifyContent: "space-between",
-          flex: 1,
-          gap: tokens.spacing.lg,
+          justifyContent: "center",
+          marginTop: "16px",
+          marginBottom: "auto",
+          position: "relative",
+          zIndex: 1,
         }}
       >
-        {/* Status Indicator */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
-          <StatusBadge status={status} size="lg" />
-          <span style={{ fontSize: tokens.typography.caption.fontSize, color: tokens.colors.textSecondary }}>
-            {getSubtitleByStatus()}
-          </span>
-        </div>
+        <ThreeAvatar3D
+          photoUrl={persona.photoUrl}
+          personaName={persona.name}
+          gradientStart={persona.avatarGradient?.start}
+          gradientEnd={persona.avatarGradient?.end}
+          size={340}
+          isSpeaking={status === "speaking"}
+          isListening={status === "listening"}
+          status={status}
+        />
 
-        {/* Error Banner */}
-        {errorMessage && (
-          <div
-            role="alert"
-            style={{
-              width: "100%",
-              padding: "10px 14px",
-              borderRadius: tokens.radii.md,
-              backgroundColor: tokens.colors.statusErrorBg,
-              border: `1px solid ${tokens.colors.statusError}44`,
-              color: tokens.colors.statusError,
-              fontSize: "13px",
-              fontWeight: 500,
-              textAlign: "center",
-            }}
-          >
-            ⚠️ {errorMessage}
-          </div>
-        )}
-
-        {/* Central Persona Avatar & Aura */}
-        <div
+        <h2
           style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            margin: "auto 0",
-          }}
-        >
-          {persona.photoUrl || persona.isCustom ? (
-            <ThreeAvatar3D
-              photoUrl={persona.photoUrl}
-              size={220}
-              isSpeaking={status === "speaking"}
-              isListening={status === "listening"}
-              status={status}
-            />
-          ) : (
-            <PersonaAvatar
-              persona={persona}
-              size="call"
-              isSpeaking={status === "speaking"}
-              isListening={status === "listening"}
-            />
-          )}
-
-          <h2
-            style={{
-              fontSize: tokens.typography.headingLarge.fontSize,
-              fontWeight: 700,
-              color: tokens.colors.textPrimary,
-              marginTop: persona.photoUrl || persona.isCustom ? "8px" : tokens.spacing.lg,
-            }}
-          >
-            {persona.name}
-          </h2>
-
-          <p
-            style={{
-              fontSize: tokens.typography.bodySmall.fontSize,
-              color: tokens.colors.textSecondary,
-              marginTop: "2px",
-            }}
-          >
-            {persona.tagline}
-          </p>
-
-          {persona.clonedVoice && (
-            <span
-              style={{
-                fontSize: "11px",
-                fontWeight: 600,
-                color: tokens.colors.peachPrimary,
-                backgroundColor: tokens.colors.surfacePeachTint,
-                border: `1px solid ${tokens.colors.borderPeach}`,
-                padding: "2px 10px",
-                borderRadius: tokens.radii.full,
-                marginTop: "6px",
-              }}
-            >
-              🎬 Cloned Voice: {persona.clonedVoice.fileName} ({persona.clonedVoice.pitchEstimateHz}Hz)
-            </span>
-          )}
-
-          {/* Dynamic Audio Visualizer */}
-          <div style={{ marginTop: tokens.spacing.md }}>
-            <CallVisualizer status={status} accentColor={persona.avatarGradient?.start || tokens.colors.lavenderPrimary} />
-          </div>
-        </div>
-
-        {/* Ambient Prompt Cue / Helper */}
-        <div
-          style={{
-            width: "100%",
-            backgroundColor: tokens.colors.surfaceLavenderTint,
-            border: `1px solid ${tokens.colors.borderLavender}`,
-            borderRadius: tokens.radii.lg,
-            padding: "10px 14px",
+            fontSize: "26px",
+            fontWeight: 800,
+            color: "#312E81",
+            textShadow: "0 2px 12px rgba(139, 92, 246, 0.25), 0 1px 3px rgba(255, 255, 255, 0.6)",
+            marginTop: "12px",
+            letterSpacing: "-0.02em",
             textAlign: "center",
           }}
         >
-          <p
-            style={{
-              fontSize: "13px",
-              color: tokens.colors.textSecondary,
-              fontStyle: "italic",
-            }}
-          >
-            {status === "speaking"
-              ? "Tip: You can interrupt at any time simply by speaking."
-              : `“${persona.suggestedPrompt}”`}
-          </p>
-        </div>
+          {persona.name}
+        </h2>
       </div>
 
-      {/* Bottom Controls & Mock Switcher */}
-      <CallControls
-        status={status}
-        muted={muted}
-        onToggleMute={handleToggleMute}
-        onEndCall={handleEndCall}
-        onRetry={handleRetry}
-        onSelectMockState={handleSelectMockState}
-        isMockMode={!controller}
-      />
+      {/* Bottom Controls pinned at the very bottom dock */}
+      <div style={{ width: "100%", marginTop: "auto", paddingBottom: "12px" }}>
+        <CallControls
+          status={status}
+          muted={muted}
+          onToggleMute={handleToggleMute}
+          onEndCall={handleEndCall}
+          onRetry={handleRetry}
+          onSelectMockState={handleSelectMockState}
+          isMockMode={!controller}
+        />
+      </div>
     </div>
   );
 };

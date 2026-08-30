@@ -4,7 +4,7 @@ import { z } from "zod";
 import { personaIds, personaSessions, type PersonaId } from "../config/personas.js";
 
 const requestSchema = z.object({
-  personaId: z.enum(personaIds),
+  personaId: z.string().trim().min(1),
   sdp: z.string().trim().min(1).max(200_000),
 });
 
@@ -59,12 +59,21 @@ realtimeRouter.post("/calls", async (request: Request, response: Response) => {
   }
 });
 
-function createSession(personaId: PersonaId) {
-  const persona = personaSessions[personaId];
+function createSession(personaId: string) {
+  const persona = personaSessions[personaId as PersonaId];
+  if (persona) {
+    return {
+      type: "realtime",
+      model,
+      instructions: `${persona.instructions}\n\nThe user selected ${persona.displayName}.`,
+    };
+  }
 
+  // Custom 3D Persona Session
+  const cleanName = personaId.replace(/^custom_/, "").replace(/_[0-9]+$/, "").replace(/_/g, " ");
   return {
     type: "realtime",
     model,
-    instructions: `${persona.instructions}\n\nThe user selected ${persona.displayName}.`,
+    instructions: `You are ${cleanName || "a warm companion"}, a thoughtful, caring, and loving AI companion in a live voice call. Speak naturally, warmly, attentively, and concisely as a true trusted companion.`,
   };
 }

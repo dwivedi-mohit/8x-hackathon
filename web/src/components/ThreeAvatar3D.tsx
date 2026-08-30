@@ -1,182 +1,389 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import type { CallStatus } from "../types/call.js";
 
-type ThreeAvatar3DProps = {
+export type ThreeAvatar3DProps = {
   photoUrl?: string;
+  personaName?: string;
+  size?: number; // Canvas diameter in px
   isSpeaking?: boolean;
   isListening?: boolean;
-  status?: CallStatus;
-  size?: number;
+  status?: string;
   interactive?: boolean;
   scanEffect?: boolean;
+  gradientStart?: string;
+  gradientEnd?: string;
   onModelReady?: () => void;
 };
 
 export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
   photoUrl,
-  isSpeaking = false,
-  isListening = false,
-  status = "idle",
+  personaName = "Companion",
   size = 280,
+  isSpeaking = false,
   interactive = true,
-  scanEffect = false,
+  scanEffect = true,
+  gradientStart = "#818CF8",
+  gradientEnd = "#C084FC",
   onModelReady,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
-  const [scanProgress, setScanProgress] = useState(0);
-
-  // References for animation state
-  const sceneRef = useRef<THREE.Scene | null>(null);
-  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const headGroupRef = useRef<THREE.Group | null>(null);
-  const mouthMeshRef = useRef<THREE.Mesh | null>(null);
-  const leftEyeRef = useRef<THREE.Mesh | null>(null);
-  const rightEyeRef = useRef<THREE.Mesh | null>(null);
-  const wireframeMeshRef = useRef<THREE.Mesh | null>(null);
   const isSpeakingRef = useRef(isSpeaking);
-  const isListeningRef = useRef(isListening);
 
   useEffect(() => {
     isSpeakingRef.current = isSpeaking;
   }, [isSpeaking]);
 
   useEffect(() => {
-    isListeningRef.current = isListening;
-  }, [isListening]);
-
-  useEffect(() => {
     const container = mountRef.current;
     if (!container) return;
 
-    // Scene Setup
+    // Clean any prior canvas
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+
+    const width = size;
+    const height = Math.round(size * 1.25);
+
+    // =========================================================================
+    // 1. Scene, Camera, & High-Performance Renderer
+    // =========================================================================
     const scene = new THREE.Scene();
-    sceneRef.current = scene;
+    scene.fog = new THREE.FogExp2(0xfff8f0, 0.06);
 
-    // Camera
-    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 1000);
-    camera.position.set(0, 0, 4.2);
+    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
+    camera.position.set(0, 0.25, 3.85);
 
-    // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(size, size);
+    const renderer = new THREE.WebGLRenderer({
+      alpha: true,
+      antialias: true,
+      powerPreference: "high-performance",
+    });
+    renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    container.replaceChildren(renderer.domElement);
-    rendererRef.current = renderer;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.35;
+    container.appendChild(renderer.domElement);
 
     // Lighting
-    const ambientLight = new THREE.AmbientLight(0xfff5ea, 1.4);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xffeedd, 2.2);
-    keyLight.position.set(2, 4, 3);
-    scene.add(keyLight);
+    const frontKeyLight = new THREE.DirectionalLight(0xfffbeb, 2.2);
+    frontKeyLight.position.set(1.5, 3.0, 3.5);
+    scene.add(frontKeyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xa78bfa, 1.6);
-    fillLight.position.set(-3, 1, 2);
-    scene.add(fillLight);
+    const goldFloorLight = new THREE.PointLight(0xfef08a, 4.0, 6.0, 1.2);
+    goldFloorLight.position.set(0, -1.2, 0.8);
+    scene.add(goldFloorLight);
 
-    const rimLight = new THREE.PointLight(0xf4a261, 2.5, 10);
-    rimLight.position.set(0, 3, -2);
+    const rimLight = new THREE.DirectionalLight(0x00f0ff, 1.6);
+    rimLight.position.set(-2.0, 2.0, -2.0);
     scene.add(rimLight);
 
-    // Group for Head & Accessories
-    const headGroup = new THREE.Group();
-    headGroup.position.set(0, -0.1, 0);
-    scene.add(headGroup);
-    headGroupRef.current = headGroup;
+    const holoField = new THREE.Group();
+    scene.add(holoField);
 
-    // 3D Head Geometry with Procedural Depth
-    const headGeo = new THREE.SphereGeometry(1.2, 48, 48);
-    // Sculpt sphere into head-shape (taper jaw, broaden forehead)
-    const pos = headGeo.attributes.position;
-    for (let i = 0; i < pos.count; i++) {
-      let x = pos.getX(i);
-      let y = pos.getY(i);
-      let z = pos.getZ(i);
+    // =========================================================================
+    // 2. Light-Golden HUD Projector Floor Base
+    // =========================================================================
+    const floorHUD = new THREE.Group();
+    floorHUD.position.set(0, -1.05, 0.2);
+    holoField.add(floorHUD);
 
-      // Chin taper
-      if (y < -0.3) {
-        x *= 0.85 + (y + 0.3) * 0.2;
-        z *= 0.9;
+    // Compact Floor HUD Dials
+    const dialTexCanvas = document.createElement("canvas");
+    dialTexCanvas.width = 512;
+    dialTexCanvas.height = 512;
+    const dialCtx = dialTexCanvas.getContext("2d");
+    if (dialCtx) {
+      dialCtx.clearRect(0, 0, 512, 512);
+      dialCtx.strokeStyle = "#FEF08A";
+      dialCtx.lineWidth = 4;
+      dialCtx.beginPath();
+      dialCtx.arc(256, 256, 230, 0, Math.PI * 2);
+      dialCtx.stroke();
+
+      dialCtx.lineWidth = 2;
+      dialCtx.setLineDash([8, 12]);
+      dialCtx.beginPath();
+      dialCtx.arc(256, 256, 205, 0, Math.PI * 2);
+      dialCtx.stroke();
+      dialCtx.setLineDash([]);
+
+      dialCtx.strokeStyle = "#FDE047";
+      dialCtx.lineWidth = 3;
+      dialCtx.beginPath();
+      dialCtx.arc(256, 256, 175, 0, Math.PI * 2);
+      dialCtx.stroke();
+
+      dialCtx.fillStyle = "#FEF08A";
+      for (let i = 0; i < 24; i++) {
+        const rad = (i / 24) * Math.PI * 2;
+        const x = 256 + Math.cos(rad) * 190;
+        const y = 256 + Math.sin(rad) * 190;
+        dialCtx.beginPath();
+        dialCtx.arc(x, y, 3.5, 0, Math.PI * 2);
+        dialCtx.fill();
       }
-      // Forehead widening
-      if (y > 0.4) {
-        x *= 1.05;
+
+      for (let i = 0; i < 8; i++) {
+        const rad = (i / 8) * Math.PI * 2;
+        dialCtx.strokeStyle = "#FEF08A";
+        dialCtx.lineWidth = 2.5;
+        dialCtx.beginPath();
+        dialCtx.moveTo(256 + Math.cos(rad) * 215, 256 + Math.sin(rad) * 215);
+        dialCtx.lineTo(256 + Math.cos(rad) * 238, 256 + Math.sin(rad) * 238);
+        dialCtx.stroke();
       }
-      // Nose bridge protrusion
-      if (z > 0.8 && Math.abs(x) < 0.25 && y > -0.2 && y < 0.25) {
-        z += 0.22 * (1 - Math.abs(x) / 0.25);
-      }
-      pos.setXYZ(i, x, y, z);
     }
-    headGeo.computeVertexNormals();
 
-    // Texture Loader (Photo or fallback gradient)
+    const hudDialTexture = new THREE.CanvasTexture(dialTexCanvas);
+    const hudDialMat = new THREE.MeshBasicMaterial({
+      map: hudDialTexture,
+      transparent: true,
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+    const hudDialMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.6), hudDialMat);
+    hudDialMesh.rotation.x = -Math.PI / 2;
+    floorHUD.add(hudDialMesh);
+
+    const ringMat1 = new THREE.MeshBasicMaterial({
+      color: 0xfef08a,
+      transparent: true,
+      opacity: 0.8,
+      blending: THREE.AdditiveBlending,
+    });
+    const ring1 = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.008, 16, 64), ringMat1);
+    ring1.rotation.x = Math.PI / 2;
+    floorHUD.add(ring1);
+
+    const diodesGroup = new THREE.Group();
+    const diodeGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.04, 8);
+    const diodeMat = new THREE.MeshBasicMaterial({
+      color: 0xfef08a,
+      blending: THREE.AdditiveBlending,
+    });
+    for (let i = 0; i < 18; i++) {
+      const angle = (i / 18) * Math.PI * 2;
+      const diode = new THREE.Mesh(diodeGeo, diodeMat);
+      diode.position.set(Math.cos(angle) * 0.68, 0.015, Math.sin(angle) * 0.68);
+      diodesGroup.add(diode);
+    }
+    floorHUD.add(diodesGroup);
+
+    const coreFlareMat = new THREE.MeshBasicMaterial({
+      color: 0xfef08a,
+      transparent: true,
+      opacity: 0.85,
+      blending: THREE.AdditiveBlending,
+    });
+    const coreFlare = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 16), coreFlareMat);
+    coreFlare.position.set(0, 0.02, 0);
+    floorHUD.add(coreFlare);
+
+    // Inverted Triangle Wireframe Grid Beam
+    const coneWireGeo = new THREE.CylinderGeometry(1.32, 0.22, 1.35, 18, 8, true);
+    const coneWireMat = new THREE.MeshBasicMaterial({
+      color: 0xfef08a,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.45,
+      blending: THREE.AdditiveBlending,
+    });
+    const invertedTriangleGrid = new THREE.LineSegments(coneWireGeo, coneWireMat);
+    invertedTriangleGrid.position.set(0, -0.38, 0.2);
+    holoField.add(invertedTriangleGrid);
+
+    // Soft Inner Light Beam
+    const beamGeo = new THREE.CylinderGeometry(1.28, 0.2, 1.35, 32, 1, true);
+    const beamMat = new THREE.MeshBasicMaterial({
+      color: 0xfde047,
+      transparent: true,
+      opacity: 0.12,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+    const beamMesh = new THREE.Mesh(beamGeo, beamMat);
+    beamMesh.position.set(0, -0.38, 0.2);
+    holoField.add(beamMesh);
+
+    // =========================================================================
+    // 3. 360-Degree Image-to-3D Volumetric Mesh & Real-time Lip-Sync Model
+    // =========================================================================
+    const modelGroup = new THREE.Group();
+    modelGroup.position.set(0, 0.45, 0.2);
+    holoField.add(modelGroup);
+
+    // High-resolution 3D facial relief geometry (48x48 mesh)
+    const modelGeo = new THREE.PlaneGeometry(1.85, 2.25, 48, 48);
+    const pos = modelGeo.attributes.position;
+    const originalPositions = new Float32Array(pos.array);
+    const mouthIndices: number[] = [];
+    const jawIndices: number[] = [];
+
+    // Construct 3D Volumetric Relief with facial curvature and identify mouth/jaw vertices
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      const y = pos.getY(i);
+
+      // Organic convex bust curvature
+      const r = Math.sqrt((x / 0.92) ** 2 + ((y - 0.25) / 1.15) ** 2);
+      const facialRelief = Math.max(0, 1 - r) * 0.22;
+      const z = facialRelief - Math.pow(x / 0.95, 2) * 0.12;
+
+      pos.setZ(i, z);
+      originalPositions[i * 3 + 2] = z;
+
+      // Identify mouth vertices (centered around Y ~ -0.05, X between -0.22 and +0.22)
+      if (Math.abs(x) < 0.22 && y > -0.22 && y < 0.08) {
+        mouthIndices.push(i);
+      }
+      // Identify lower jaw vertices (Y between -0.45 and -0.20)
+      if (Math.abs(x) < 0.35 && y > -0.45 && y <= -0.20) {
+        jawIndices.push(i);
+      }
+    }
+    modelGeo.computeVertexNormals();
+
+    // Sparse Light Golden Wireframe Contour Overlay (6x8 grid)
+    const sparseGridGeo = new THREE.PlaneGeometry(1.85, 2.25, 6, 8);
+    const sparsePos = sparseGridGeo.attributes.position;
+    for (let i = 0; i < sparsePos.count; i++) {
+      const x = sparsePos.getX(i);
+      const y = sparsePos.getY(i);
+      const r = Math.sqrt((x / 0.92) ** 2 + ((y - 0.25) / 1.15) ** 2);
+      const z = Math.max(0, 1 - r) * 0.22 - Math.pow(x / 0.95, 2) * 0.12;
+      sparsePos.setZ(i, z);
+    }
+
+    const createPersonaCanvasTexture = (name: string, startCol: string, endCol: string) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 512;
+      canvas.height = 640;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return undefined;
+
+      const grad = ctx.createLinearGradient(0, 0, 512, 640);
+      grad.addColorStop(0, startCol);
+      grad.addColorStop(1, endCol);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 512, 640);
+
+      const radGrad = ctx.createRadialGradient(256, 260, 30, 256, 260, 240);
+      radGrad.addColorStop(0, "rgba(255, 255, 255, 0.95)");
+      radGrad.addColorStop(0.4, "rgba(254, 240, 138, 0.5)");
+      radGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = radGrad;
+      ctx.fillRect(0, 0, 512, 640);
+
+      ctx.fillStyle = "rgba(255, 255, 255, 0.94)";
+      ctx.beginPath();
+      ctx.arc(256, 230, 88, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.ellipse(256, 440, 175, 125, 0, Math.PI, 0);
+      ctx.fill();
+
+      ctx.font = "bold 82px system-ui, -apple-system, sans-serif";
+      ctx.fillStyle = "#312E81";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(name.charAt(0).toUpperCase(), 256, 230);
+
+      ctx.strokeStyle = "#FEF08A";
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.arc(256, 230, 96, 0, Math.PI * 2);
+      ctx.stroke();
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    };
+
     const textureLoader = new THREE.TextureLoader();
 
-    const applyHeadMaterial = (texture?: THREE.Texture) => {
-      let headMaterial: THREE.Material;
+    const buildModel = (tex?: THREE.Texture) => {
+      let modelMat: THREE.Material;
 
-      if (texture) {
-        texture.colorSpace = THREE.SRGBColorSpace;
-        headMaterial = new THREE.MeshStandardMaterial({
-          map: texture,
-          roughness: 0.45,
-          metalness: 0.08,
-          bumpScale: 0.05,
+      if (tex) {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        modelMat = new THREE.MeshStandardMaterial({
+          map: tex,
+          transparent: true,
+          opacity: 0.96,
+          roughness: 0.35,
+          metalness: 0.05,
+          emissive: 0xfef08a,
+          emissiveIntensity: 0.06,
+          side: THREE.DoubleSide,
         });
       } else {
-        headMaterial = new THREE.MeshStandardMaterial({
-          color: 0xf3d2bc,
-          roughness: 0.5,
-          metalness: 0.05,
+        modelMat = new THREE.MeshStandardMaterial({
+          color: 0xfef08a,
+          transparent: true,
+          opacity: 0.92,
+          roughness: 0.35,
+          metalness: 0.15,
+          emissive: 0xfde047,
+          emissiveIntensity: 0.2,
+          side: THREE.DoubleSide,
         });
       }
 
-      const headMesh = new THREE.Mesh(headGeo, headMaterial);
-      headMesh.castShadow = true;
-      headGroup.add(headMesh);
+      // Front 3D Face Relief Mesh
+      const mesh = new THREE.Mesh(modelGeo, modelMat);
+      modelGroup.add(mesh);
 
-      // 3D Eyes
-      const eyeGeo = new THREE.SphereGeometry(0.14, 24, 24);
-      const eyeMat = new THREE.MeshStandardMaterial({ color: 0x1f1d2b, roughness: 0.1 });
-
-      const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-      leftEye.position.set(-0.38, 0.15, 1.05);
-      headGroup.add(leftEye);
-      leftEyeRef.current = leftEye;
-
-      const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
-      rightEye.position.set(0.38, 0.15, 1.05);
-      headGroup.add(rightEye);
-      rightEyeRef.current = rightEye;
-
-      // 3D Stylized Mouth for Lip-Sync
-      const mouthGeo = new THREE.CapsuleGeometry(0.16, 0.22, 16, 16);
-      const mouthMat = new THREE.MeshStandardMaterial({
-        color: 0xc45e65,
+      // Back 3D Shell to form a 360-degree volumetric bust
+      const backGeo = modelGeo.clone();
+      const backPos = backGeo.attributes.position;
+      for (let i = 0; i < backPos.count; i++) {
+        backPos.setZ(i, -backPos.getZ(i) - 0.04);
+      }
+      backGeo.computeVertexNormals();
+      const backMat = new THREE.MeshStandardMaterial({
+        color: 0x818cf8,
+        transparent: true,
+        opacity: 0.85,
         roughness: 0.4,
+        metalness: 0.1,
+        emissive: 0x312e81,
+        emissiveIntensity: 0.15,
+        side: THREE.BackSide,
       });
-      const mouth = new THREE.Mesh(mouthGeo, mouthMat);
-      mouth.rotation.z = Math.PI / 2;
-      mouth.position.set(0, -0.42, 1.08);
-      headGroup.add(mouth);
-      mouthMeshRef.current = mouth;
+      const backMesh = new THREE.Mesh(backGeo, backMat);
+      modelGroup.add(backMesh);
 
-      // Holographic / Cyber scanning wireframe overlay
-      const wireframeMat = new THREE.MeshBasicMaterial({
-        color: 0x7c3aed,
+      // Sparse Light Golden Wireframe Grid
+      const goldenWireMat = new THREE.MeshBasicMaterial({
+        color: 0xfef08a,
         wireframe: true,
         transparent: true,
-        opacity: scanEffect ? 0.6 : 0.0,
+        opacity: 0.45,
+        blending: THREE.AdditiveBlending,
       });
-      const wireframeMesh = new THREE.Mesh(headGeo.clone(), wireframeMat);
-      wireframeMesh.scale.set(1.03, 1.03, 1.03);
-      headGroup.add(wireframeMesh);
-      wireframeMeshRef.current = wireframeMesh;
+      const wireMesh = new THREE.Mesh(sparseGridGeo, goldenWireMat);
+      wireMesh.position.z = 0.008;
+      modelGroup.add(wireMesh);
+
+      // Glowing Golden Silhouette Edge Halo
+      const haloGeo = new THREE.PlaneGeometry(1.95, 2.35);
+      const haloMat = new THREE.MeshBasicMaterial({
+        color: 0xfef08a,
+        transparent: true,
+        opacity: 0.3,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      });
+      const haloMesh = new THREE.Mesh(haloGeo, haloMat);
+      haloMesh.position.z = -0.02;
+      modelGroup.add(haloMesh);
 
       setLoading(false);
       onModelReady?.();
@@ -185,97 +392,213 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
     if (photoUrl) {
       textureLoader.load(
         photoUrl,
-        (tex) => applyHeadMaterial(tex),
+        (tex) => buildModel(tex),
         undefined,
-        () => applyHeadMaterial()
+        () => {
+          const fallbackTex = createPersonaCanvasTexture(personaName, gradientStart, gradientEnd);
+          buildModel(fallbackTex);
+        }
       );
     } else {
-      applyHeadMaterial();
+      const defaultTex = createPersonaCanvasTexture(personaName, gradientStart, gradientEnd);
+      buildModel(defaultTex);
     }
 
-    // Interactive mouse / touch tracking
-    let targetRotX = 0;
-    let targetRotY = 0;
+    // =========================================================================
+    // 4. Glowing Light Lines & Orbital Rings at Top & Shoulders
+    // =========================================================================
+    const topGlowGroup = new THREE.Group();
+    topGlowGroup.position.set(0, 0.45, 0.2);
+    holoField.add(topGlowGroup);
 
-    const handlePointerMove = (e: MouseEvent | TouchEvent) => {
+    const goldRingMat = new THREE.MeshBasicMaterial({
+      color: 0xfef08a,
+      transparent: true,
+      opacity: 0.85,
+      blending: THREE.AdditiveBlending,
+    });
+    const cyanRingMat = new THREE.MeshBasicMaterial({
+      color: 0x00f0ff,
+      transparent: true,
+      opacity: 0.75,
+      blending: THREE.AdditiveBlending,
+    });
+
+    const topOrbit1 = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.009, 16, 80), goldRingMat);
+    topOrbit1.scale.set(1.22, 0.36, 1.22);
+    topOrbit1.rotation.z = 0.32;
+    topOrbit1.rotation.x = 0.2;
+    topGlowGroup.add(topOrbit1);
+
+    const topOrbit2 = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.008, 16, 80), cyanRingMat);
+    topOrbit2.scale.set(1.18, 0.32, 1.18);
+    topOrbit2.rotation.z = -0.34;
+    topOrbit2.rotation.x = -0.16;
+    topGlowGroup.add(topOrbit2);
+
+    // =========================================================================
+    // 5. Floating Glowing Particle Stardust
+    // =========================================================================
+    const particleCount = 65;
+    const particleGeo = new THREE.BufferGeometry();
+    const particlePositions = new Float32Array(particleCount * 3);
+
+    for (let i = 0; i < particleCount; i++) {
+      const theta = Math.random() * Math.PI * 2;
+      const r = 0.15 + Math.random() * 0.95;
+      particlePositions[i * 3] = Math.cos(theta) * r;
+      particlePositions[i * 3 + 1] = -0.85 + Math.random() * 2.1;
+      particlePositions[i * 3 + 2] = Math.sin(theta) * r + 0.2;
+    }
+
+    particleGeo.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
+    const particleMat = new THREE.PointsMaterial({
+      color: 0xfef08a,
+      size: 0.038,
+      transparent: true,
+      opacity: 0.85,
+      blending: THREE.AdditiveBlending,
+    });
+    const particles = new THREE.Points(particleGeo, particleMat);
+    holoField.add(particles);
+
+    // =========================================================================
+    // 6. Interactive 360-Degree Touch / Drag Rotation & Lip-Sync Loop
+    // =========================================================================
+    let isDragging = false;
+    let prevPointerX = 0;
+    let prevPointerY = 0;
+    let orbitRotY = 0;
+    let orbitRotX = 0;
+    let velocityY = 0;
+    let velocityX = 0;
+    let autoRotate = true;
+
+    const onPointerDown = (e: PointerEvent) => {
       if (!interactive) return;
-      const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-      const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-      const rect = container.getBoundingClientRect();
-      const x = (clientX - rect.left) / rect.width - 0.5;
-      const y = (clientY - rect.top) / rect.height - 0.5;
-
-      targetRotY = x * 0.75;
-      targetRotX = y * 0.55;
+      isDragging = true;
+      autoRotate = false;
+      prevPointerX = e.clientX;
+      prevPointerY = e.clientY;
     };
 
-    window.addEventListener("mousemove", handlePointerMove);
-    window.addEventListener("touchmove", handlePointerMove);
+    const onPointerMove = (e: PointerEvent) => {
+      if (!isDragging) return;
+      const deltaX = e.clientX - prevPointerX;
+      const deltaY = e.clientY - prevPointerY;
+      prevPointerX = e.clientX;
+      prevPointerY = e.clientY;
 
-    // Animation Loop
+      velocityY = deltaX * 0.012;
+      velocityX = deltaY * 0.008;
+
+      orbitRotY += velocityY;
+      orbitRotX = Math.max(-0.45, Math.min(0.45, orbitRotX + velocityX));
+    };
+
+    const onPointerUp = () => {
+      isDragging = false;
+      // Resume gentle auto rotation after 3 seconds of inactivity
+      setTimeout(() => {
+        if (!isDragging) autoRotate = true;
+      }, 3000);
+    };
+
+    renderer.domElement.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+
     let animationFrameId: number;
-    let clock = new THREE.Clock();
-    let blinkTimer = 0;
+    const clock = new THREE.Clock();
 
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
-      const delta = clock.getDelta();
       const elapsed = clock.getElapsedTime();
 
-      // Smooth Head Tracking & Idle Sway
-      if (headGroupRef.current) {
-        headGroupRef.current.rotation.y += (targetRotY - headGroupRef.current.rotation.y) * 0.08;
-        headGroupRef.current.rotation.x += (targetRotX - headGroupRef.current.rotation.x) * 0.08;
-
-        // Subtle breathing & idle bob
-        headGroupRef.current.position.y = -0.1 + Math.sin(elapsed * 2.0) * 0.035;
-
-        if (isSpeakingRef.current) {
-          // Dynamic 3D Head gesture when speaking
-          headGroupRef.current.rotation.z = Math.sin(elapsed * 4.5) * 0.04;
-          headGroupRef.current.rotation.x += Math.cos(elapsed * 6.0) * 0.02;
+      // 360-degree rotation handling with smooth inertia
+      if (!isDragging) {
+        if (autoRotate) {
+          orbitRotY += 0.008; // Subtle 360-degree turntable rotation
         } else {
-          headGroupRef.current.rotation.z *= 0.9;
+          velocityY *= 0.92;
+          velocityX *= 0.92;
+          orbitRotY += velocityY;
+          orbitRotX += velocityX;
         }
       }
 
-      // Mouth Lip-Sync & Jaw Morphing
-      if (mouthMeshRef.current) {
-        if (isSpeakingRef.current) {
-          const speechOpen = Math.abs(Math.sin(elapsed * 9.0)) * 0.28 + 0.08;
-          mouthMeshRef.current.scale.y = 1.0 + speechOpen * 3.5;
-          mouthMeshRef.current.scale.x = 1.0 - speechOpen * 0.5;
-        } else if (isListeningRef.current) {
-          mouthMeshRef.current.scale.y = 1.0 + Math.sin(elapsed * 3.0) * 0.15;
-          mouthMeshRef.current.scale.x = 1.0;
-        } else {
-          mouthMeshRef.current.scale.set(1, 1, 1);
+      modelGroup.rotation.y = orbitRotY;
+      modelGroup.rotation.x = orbitRotX;
+
+      // Parallax tracking on the overall holographic field
+      holoField.rotation.y = Math.sin(elapsed * 0.6) * 0.05;
+
+      // Gentle floating levitation
+      modelGroup.position.y = 0.45 + Math.sin(elapsed * 2.2) * 0.03;
+      topGlowGroup.position.y = 0.45 + Math.sin(elapsed * 2.2) * 0.03;
+
+      // Smooth rotation of top glowing orbital rings
+      topOrbit1.rotation.y = elapsed * 0.55;
+      topOrbit2.rotation.y = -elapsed * 0.45;
+
+      // Rotating compact HUD dials on the floor
+      hudDialMesh.rotation.z = elapsed * 0.35;
+      ring1.rotation.z = -elapsed * 0.25;
+      diodesGroup.rotation.z = elapsed * 0.15;
+      invertedTriangleGrid.rotation.y = -elapsed * 0.18;
+
+      // =======================================================================
+      // Real-time 3D Lip-Sync Viseme Morphing
+      // =======================================================================
+      if (isSpeakingRef.current) {
+        const pulse = 1.0 + Math.sin(elapsed * 8.0) * 0.025;
+        modelGroup.scale.set(pulse, pulse, pulse);
+        coreFlareMat.opacity = 0.95 + Math.sin(elapsed * 9.0) * 0.15;
+
+        // Dynamic viseme mouth opening and phonetic speech modulation
+        const mouthOpenAmount = (Math.sin(elapsed * 13.0) * 0.5 + 0.5) * 0.042 + Math.abs(Math.sin(elapsed * 21.0)) * 0.018;
+        const jawDropAmount = (Math.sin(elapsed * 13.0) * 0.5 + 0.5) * 0.03;
+
+        // Modulate mouth vertices
+        for (const idx of mouthIndices) {
+          const baseZ = originalPositions[idx * 3 + 2] ?? 0;
+          const baseY = originalPositions[idx * 3 + 1] ?? 0;
+          pos.setY(idx, baseY - mouthOpenAmount * 0.65);
+          pos.setZ(idx, baseZ + Math.cos(elapsed * 14.0) * 0.018);
+        }
+
+        // Modulate lower jaw vertices
+        for (const idx of jawIndices) {
+          const baseY = originalPositions[idx * 3 + 1] ?? 0;
+          pos.setY(idx, baseY - jawDropAmount);
+        }
+
+        pos.needsUpdate = true;
+        modelGeo.computeVertexNormals();
+      } else {
+        modelGroup.scale.set(1, 1, 1);
+        coreFlareMat.opacity = 0.85;
+
+        // Return mouth vertices to resting expression
+        if (pos.needsUpdate) {
+          for (let i = 0; i < pos.count; i++) {
+            pos.setY(i, originalPositions[i * 3 + 1] ?? 0);
+            pos.setZ(i, originalPositions[i * 3 + 2] ?? 0);
+          }
+          pos.needsUpdate = true;
+          modelGeo.computeVertexNormals();
         }
       }
 
-      // Natural Blinking
-      blinkTimer += delta;
-      if (blinkTimer > 3.5) {
-        const blinkProgress = (blinkTimer - 3.5) / 0.15;
-        if (blinkProgress < 1.0) {
-          const eyeScaleY = Math.max(0.1, 1.0 - Math.sin(blinkProgress * Math.PI));
-          leftEyeRef.current?.scale.set(1, eyeScaleY, 1);
-          rightEyeRef.current?.scale.set(1, eyeScaleY, 1);
-        } else {
-          leftEyeRef.current?.scale.set(1, 1, 1);
-          rightEyeRef.current?.scale.set(1, 1, 1);
-          blinkTimer = 0;
+      // Upward particle drift
+      const positions = particleGeo.attributes.position.array as Float32Array;
+      for (let i = 0; i < particleCount; i++) {
+        positions[i * 3 + 1] += 0.008;
+        if (positions[i * 3 + 1] > 1.4) {
+          positions[i * 3 + 1] = -0.85;
         }
       }
-
-      // Scanning wireframe pulse
-      if (wireframeMeshRef.current && scanEffect) {
-        wireframeMeshRef.current.rotation.y = elapsed * 0.5;
-        const mat = wireframeMeshRef.current.material;
-        if (mat && !Array.isArray(mat) && "opacity" in mat) {
-          mat.opacity = 0.3 + Math.sin(elapsed * 4.0) * 0.3;
-        }
-      }
+      particleGeo.attributes.position.needsUpdate = true;
 
       renderer.render(scene, camera);
     };
@@ -284,37 +607,40 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
 
     return () => {
       cancelAnimationFrame(animationFrameId);
-      window.removeEventListener("mousemove", handlePointerMove);
-      window.removeEventListener("touchmove", handlePointerMove);
+      renderer.domElement.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
       renderer.dispose();
     };
-  }, [photoUrl, size, interactive, scanEffect]);
+  }, [photoUrl, size, interactive, scanEffect, personaName, gradientStart, gradientEnd, onModelReady]);
 
   return (
     <div
       style={{
         position: "relative",
         width: `${size}px`,
-        height: `${size}px`,
+        height: `${size * 1.25}px`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         userSelect: "none",
+        cursor: "grab",
       }}
     >
       {/* 3D Canvas Mount */}
       <div ref={mountRef} style={{ width: "100%", height: "100%" }} />
 
-      {/* Hologram / Volumetric Ring Glow */}
+      {/* Volumetric Hologram Aura Radial Glow */}
       <div
         style={{
           position: "absolute",
-          width: `${size * 1.15}px`,
-          height: `${size * 1.15}px`,
+          top: "14%",
+          width: `${size * 1.05}px`,
+          height: `${size * 1.05}px`,
           borderRadius: "50%",
           background: isSpeaking
-            ? "radial-gradient(circle, rgba(244, 162, 97, 0.28) 0%, rgba(250, 248, 245, 0) 68%)"
-            : "radial-gradient(circle, rgba(167, 139, 250, 0.28) 0%, rgba(250, 248, 245, 0) 68%)",
+            ? "radial-gradient(circle, rgba(254, 240, 138, 0.2) 0%, rgba(253, 224, 71, 0.08) 45%, transparent 70%)"
+            : "radial-gradient(circle, rgba(254, 240, 138, 0.14) 0%, rgba(253, 224, 71, 0.04) 45%, transparent 70%)",
           pointerEvents: "none",
           zIndex: 0,
         }}

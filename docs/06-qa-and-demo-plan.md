@@ -1,4 +1,4 @@
-# Project Echo — QA and Demo Readiness Plan
+﻿# Project Echo — QA and Demo Readiness Plan
 
 ## Overview
 
@@ -205,7 +205,7 @@ Timeline:
 ┌──────────────────────────────────────────────────────────────┐
 │                    PROJECT ECHO TRIAGE                       │
 ├───────────────────┬───────────────────┬──────────────────────┤
-│     EMERGENT      │     OPENCODE      │        CODEX         │
+│     EMERGENT      │     codex      │        CODEX         │
 │   (Frontend UI)   │ (WebRTC/Realtime) │   (Backend Proxy)    │
 ├───────────────────┼───────────────────┼──────────────────────┤
 │ • Layout & Themes │ • WebRTC Session  │ • Express Server     │
@@ -224,7 +224,7 @@ Timeline:
 ### [P0] <Short Descriptive Title>
 
 - **Severity:** P0 - Blocker
-- **Owner:** Emergent / OpenCode / Codex
+- **Owner:** Emergent / codex / Codex
 - **Subsystem:** UI / WebRTC Realtime / Backend API
 - **Device & Environment:** iPhone 15 Pro (iOS 17.4 Safari) / Pixel 8 (Android 14 Chrome) / Backend Node v24
 - **Date & Time:** 2026-08-30 [Time]
@@ -260,12 +260,12 @@ Timeline:
 
 ### Example P0 Defects
 
-#### Example 1: Assigned to OpenCode
+#### Example 1: Assigned to codex
 ```markdown
 ### [P0] Remote WebRTC audio track does not play automatically on iOS Safari
 
 - **Severity:** P0 - Blocker
-- **Owner:** OpenCode
+- **Owner:** codex
 - **Subsystem:** WebRTC Realtime / Audio Engine
 - **Device & Environment:** iPhone 14 Pro, iOS 17.5, Mobile Safari
 
@@ -286,7 +286,7 @@ Maya's voice plays audibly through the device loudspeaker.
 UI shows 'speaking' state, but audio is silent due to unprimed HTMLMediaElement in Safari autoplay policy.
 
 #### Fix
-OpenCode to ensure `<audio>` element is created and `.play()` is invoked within the synchronous user-tap gesture handler before WebRTC negotiation.
+codex to ensure `<audio>` element is created and `.play()` is invoked within the synchronous user-tap gesture handler before WebRTC negotiation.
 ```
 
 #### Example 2: Assigned to Codex
@@ -352,7 +352,7 @@ Emergent to apply `h-[100dvh]` with `pb-safe` flex layout to ensure call control
 
 ### 5.1 Public Repository & Code Cleanliness
 - [ ] **Repository Visibility:** GitHub repository is set to **Public** (`https://github.com/dwivedi-mohit/8x-hackathon.git`).
-- [ ] **Branch Verification:** All feature branches (`feature/codex-backend`, `feature/opencode-realtime`, `feature/emergent-web-ui`, `feature/antigravity-qa`) pushed and merged cleanly to `main` without merge conflicts.
+- [ ] **Branch Verification:** All feature branches (`feature/codex-backend`, `feature/codex-realtime`, `feature/emergent-web-ui`, `feature/codex-qa`) pushed and merged cleanly to `main` without merge conflicts.
 - [ ] **No Secrets in History:** Confirmed zero `.env` or API credentials exist in git tree or commit history.
 - [ ] **Clean Workspace:** No stray `.log`, `.tmp`, or scratch files tracked.
 
@@ -379,3 +379,4 @@ Emergent to apply `h-[100dvh]` with `pb-safe` flex layout to ensure call control
 - [ ] **3:30 PM (T - 60m):** End-to-end rehearsal on live deployment and backup recording captured.
 - [ ] **4:00 PM (T - 30m):** Final submission form populated with repository URL, demo link, and video backup.
 - [ ] **4:30 PM (T - 0m):** Official hackathon submission submitted ahead of the deadline.
+
