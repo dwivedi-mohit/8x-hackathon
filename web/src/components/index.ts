@@ -5,6 +5,7 @@ export * from "./SafetyDisclosure.js";
 export * from "./Button.js";
 export * from "./StatusBadge.js";
 export * from "./PersonaAvatar.js";
+export * from "./ThreeAvatar3D.js";
 export * from "./CallVisualizer.js";
 export * from "./TimerDisplay.js";
 export * from "./CallControls.js";

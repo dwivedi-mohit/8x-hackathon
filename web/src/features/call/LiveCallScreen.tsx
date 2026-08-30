@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import type { CallUiProps, CallStatus } from "../../types/call.js";
 import { getPersonaById } from "../persona/personasData.js";
 import { PersonaAvatar } from "../../components/PersonaAvatar.js";
+import { ThreeAvatar3D } from "../../components/ThreeAvatar3D.js";
 import { StatusBadge } from "../../components/StatusBadge.js";
 import { CallVisualizer } from "../../components/CallVisualizer.js";
 import { TimerDisplay } from "../../components/TimerDisplay.js";
@@ -190,19 +191,29 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
             margin: "auto 0",
           }}
         >
-          <PersonaAvatar
-            persona={persona}
-            size="call"
-            isSpeaking={status === "speaking"}
-            isListening={status === "listening"}
-          />
+          {persona.photoUrl || persona.isCustom ? (
+            <ThreeAvatar3D
+              photoUrl={persona.photoUrl}
+              size={220}
+              isSpeaking={status === "speaking"}
+              isListening={status === "listening"}
+              status={status}
+            />
+          ) : (
+            <PersonaAvatar
+              persona={persona}
+              size="call"
+              isSpeaking={status === "speaking"}
+              isListening={status === "listening"}
+            />
+          )}
 
           <h2
             style={{
               fontSize: tokens.typography.headingLarge.fontSize,
               fontWeight: 700,
               color: tokens.colors.textPrimary,
-              marginTop: tokens.spacing.lg,
+              marginTop: persona.photoUrl || persona.isCustom ? "8px" : tokens.spacing.lg,
             }}
           >
             {persona.name}
