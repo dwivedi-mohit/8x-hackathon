@@ -32,16 +32,18 @@ export class Img2ThreejsConverter {
     characterGroup.name = `Character_${personaName}`;
 
     // 1. Analyze image palette & luminance
-    const canvas = document.createElement("canvas");
-    canvas.width = 512;
-    canvas.height = 512;
-    const ctx = canvas.getContext("2d");
+    const canvas = typeof document !== "undefined" ? document.createElement("canvas") : null;
+    if (canvas) {
+      canvas.width = 512;
+      canvas.height = 512;
+    }
+    const ctx = canvas?.getContext("2d");
 
     let dominantSkinColor = "#E0A97E";
     let dominantClothingColor = "#F4F1DE";
     let dominantHeadwearColor = "#E6E2DF";
 
-    if (ctx) {
+    if (ctx && canvas) {
       ctx.drawImage(img, 0, 0, 512, 512);
 
       // Sample central face region (skin)
@@ -54,7 +56,7 @@ export class Img2ThreejsConverter {
         count++;
       }
       if (count > 0) {
-        dominantSkinColor = `rgb(${Math.round(r / count)}, ${Math.round(g / count)}, ${Math.round(b / count)})`;
+        dominantSkinColor = `rgb(${Math.round(r / count)}, ${Math.round(g / count)}, ${Math.round(g / count)})`;
       }
 
       // Sample lower torso region (clothing)
@@ -85,13 +87,15 @@ export class Img2ThreejsConverter {
     }
 
     // 2. Build Seamless Camera-Matched Face Texture
-    const faceCanvas = document.createElement("canvas");
-    faceCanvas.width = 512;
-    faceCanvas.height = 512;
-    const faceCtx = faceCanvas.getContext("2d");
+    const faceCanvas = typeof document !== "undefined" ? document.createElement("canvas") : null;
+    if (faceCanvas) {
+      faceCanvas.width = 512;
+      faceCanvas.height = 512;
+    }
+    const faceCtx = faceCanvas?.getContext("2d");
     let faceTexture: THREE.Texture;
 
-    if (faceCtx) {
+    if (faceCtx && faceCanvas) {
       faceCtx.clearRect(0, 0, 512, 512);
 
       // Draw portrait with soft edge vignette blend
@@ -109,7 +113,7 @@ export class Img2ThreejsConverter {
 
       faceTexture = new THREE.CanvasTexture(faceCanvas);
     } else {
-      faceTexture = new THREE.Texture(img);
+      faceTexture = new THREE.Texture();
     }
     faceTexture.colorSpace = THREE.SRGBColorSpace;
 

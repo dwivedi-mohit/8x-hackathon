@@ -32,28 +32,40 @@ export class VoiceboxService {
     speakerName: string
   ): Promise<VoiceboxCloneResponse["profile"]> {
     try {
-      const reader = new FileReader();
-      const base64Promise = new Promise<string>((resolve, reject) => {
-        reader.onloadend = () => {
-          resolve(reader.result as string);
-        };
-        reader.onerror = reject;
-      });
-      reader.readAsDataURL(audioBlob);
-      const audioBase64 = await base64Promise;
-
-      const res = await fetch("/api/voice/clone", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ speakerName, audioBase64 }),
-      });
-
-      if (res.ok) {
-        const data: VoiceboxCloneResponse = await res.json();
-        return data.profile;
+      let audioBase64 = "";
+      if (typeof FileReader !== "undefined") {
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+        });
+        reader.readAsDataURL(audioBlob);
+        audioBase64 = await base64Promise;
+      } else if (audioBlob.arrayBuffer) {
+        const buffer = await audioBlob.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        let binary = "";
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const b64 = typeof btoa !== "undefined" ? btoa(binary) : "";
+        audioBase64 = `data:audio/wav;base64,${b64}`;
       }
-    } catch (err) {
-      console.warn("[VoiceboxService] Remote cloning server unavailable. Using client-side acoustic calibration:", err);
+
+      if (typeof fetch !== "undefined") {
+        const res = await fetch("/api/voice/clone", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ speakerName, audioBase64 }),
+        });
+
+        if (res.ok) {
+          const data: VoiceboxCloneResponse = await res.json();
+          return data.profile;
+        }
+      }
+    } catch {
+      // proceed with local extracted profile
     }
 
     // Client-side fallback Voicebox embedding generator
