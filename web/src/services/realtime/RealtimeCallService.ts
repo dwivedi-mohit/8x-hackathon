@@ -2,7 +2,9 @@ import type { CallStatus, PersonaId, CallBackendRequest, CallBackendResponse } f
 import { AudioManager } from "../../lib/audio/AudioManager";
 
 const ICE_GATHERING_TIMEOUT_MS = 5000;
-const RECONNECT_DELAY_MS = 2000;
+const RECONNECT_BASE_DELAY_MS = 1000;
+const RECONNECT_MAX_DELAY_MS = 8000;
+const MAX_RECONNECT_ATTEMPTS = 5;
 
 type CallServiceCallbacks = {
   onStatusChange: (status: CallStatus) => void;
@@ -22,6 +24,7 @@ export class RealtimeCallService {
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private lastPersonaId: PersonaId | null = null;
   private connecting = false;
+  private reconnectAttempts = 0;
 
   private callbacks: CallServiceCallbacks;
 
@@ -185,6 +188,7 @@ export class RealtimeCallService {
     await pc.setRemoteDescription({ type: "answer", sdp: response.sdp });
 
     // 11. Connected — transition to listening
+    this.reconnectAttempts = 0;
     this.setStatus("listening");
     this.startElapsedTimer();
   }
@@ -300,6 +304,16 @@ export class RealtimeCallService {
 
   private scheduleReconnect(): void {
     if (this.reconnectTimeout) return;
+    if (this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+      this.handleError(new CallError("Connection lost. Tap retry to reconnect.", "max-reconnect"));
+      return;
+    }
+
+    const delay = Math.min(
+      RECONNECT_BASE_DELAY_MS * Math.pow(2, this.reconnectAttempts),
+      RECONNECT_MAX_DELAY_MS
+    );
+    this.reconnectAttempts++;
 
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectTimeout = null;
@@ -307,7 +321,7 @@ export class RealtimeCallService {
         this.connecting = false;
         this.connect(this.lastPersonaId);
       }
-    }, RECONNECT_DELAY_MS);
+    }, delay);
   }
 
   private startElapsedTimer(): void {
