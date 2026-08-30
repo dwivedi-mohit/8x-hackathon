@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { Img2ThreejsConverter } from "../lib/3d/Img2ThreejsEngine.js";
 
 export type ThreeAvatar3DProps = {
   photoUrl?: string;
@@ -49,7 +48,6 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
     // 1. Scene, Camera & High-Performance WebGL Renderer
     // =========================================================================
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0xfff8f0, 0.05);
 
     const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
     camera.position.set(0, 0.05, 3.8);
@@ -66,18 +64,22 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
     container.appendChild(renderer.domElement);
 
     // Dynamic Cinematic Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
     scene.add(ambientLight);
 
-    const frontKeyLight = new THREE.DirectionalLight(0xfffbeb, 2.2);
-    frontKeyLight.position.set(1.2, 2.5, 3.5);
+    const frontKeyLight = new THREE.DirectionalLight(0xfffbeb, 2.4);
+    frontKeyLight.position.set(1.0, 2.0, 3.5);
     scene.add(frontKeyLight);
 
-    const goldFloorLight = new THREE.PointLight(0xfef08a, 4.2, 6.0, 1.2);
+    const fillLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    fillLight.position.set(-1.5, 0.5, 2.5);
+    scene.add(fillLight);
+
+    const goldFloorLight = new THREE.PointLight(0xfef08a, 3.5, 6.0, 1.2);
     goldFloorLight.position.set(0, -1.2, 0.6);
     scene.add(goldFloorLight);
 
-    const rimCyanLight = new THREE.DirectionalLight(0x00f0ff, 1.8);
+    const rimCyanLight = new THREE.DirectionalLight(0x00f0ff, 1.4);
     rimCyanLight.position.set(-2.0, 2.0, -2.5);
     scene.add(rimCyanLight);
 
@@ -88,7 +90,7 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
     // 2. Light-Golden Floor Projector Platform & Inverted Triangle Grid Beam
     // =========================================================================
     const floorHUD = new THREE.Group();
-    floorHUD.position.set(0, -1.08, 0);
+    floorHUD.position.set(0, -1.15, 0);
     holoField.add(floorHUD);
 
     // Floor HUD Dial Texture
@@ -186,18 +188,18 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
     holoField.add(beamMesh);
 
     // =========================================================================
-    // 3. img2threejs Procedural 3D Character Model Mount
+    // 3. High-Fidelity 3D Volumetric Face & Bust Model
     // =========================================================================
     const characterGroup = new THREE.Group();
-    characterGroup.position.set(0, 0.06, 0);
+    characterGroup.position.set(0, 0.05, 0);
     holoField.add(characterGroup);
 
     let headPosAttr: THREE.BufferAttribute | null = null;
     let originalHeadPositions: Float32Array | null = null;
     const mouthIndices: number[] = [];
 
-    // Fallback procedural avatar builder for preset personas
-    const buildFallback3DCharacter = (name: string, startCol: string, endCol: string) => {
+    // Fallback Canvas Texture
+    const createFallbackCanvasTexture = (name: string, startCol: string, endCol: string): THREE.Texture => {
       const canvas = document.createElement("canvas");
       canvas.width = 512;
       canvas.height = 512;
@@ -221,38 +223,110 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
         ctx.textBaseline = "middle";
         ctx.fillText(name.charAt(0).toUpperCase(), 256, 256);
       }
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    };
 
-      const img = new Image();
-      img.onload = () => {
-        const result = Img2ThreejsConverter.reconstructCharacterFromImage(img, name);
-        characterGroup.add(result.model);
-        headPosAttr = result.headPosAttr;
-        originalHeadPositions = result.originalHeadPositions;
-        mouthIndices.push(...result.mouthIndices);
-        setLoading(false);
-        onModelReady?.();
-      };
-      img.src = canvas.toDataURL();
+    const build3DHumanModel = (texture: THREE.Texture) => {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.generateMipmaps = true;
+      texture.minFilter = THREE.LinearMipmapLinearFilter;
+      texture.needsUpdate = true;
+
+      // 1. High-Resolution Curved 3D Portrait Medallion (Front Face)
+      const meshW = 1.95;
+      const meshH = 2.35;
+      const frontGeo = new THREE.PlaneGeometry(meshW, meshH, 64, 64);
+      const pos = frontGeo.attributes.position as THREE.BufferAttribute;
+      headPosAttr = pos;
+      originalHeadPositions = new Float32Array(pos.array);
+
+      // Apply natural convex organic curvature (rounded forward 3D depth)
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i);
+        const y = pos.getY(i);
+        const nx = x / (meshW / 2);
+        const ny = y / (meshH / 2);
+        const rSq = nx * nx + ny * ny;
+
+        let z = Math.max(0, 1.0 - rSq * 0.75) * 0.32;
+        pos.setZ(i, z);
+        originalHeadPositions[i * 3 + 2] = z;
+
+        // Mouth vertices for speech lip-sync (lower-middle section)
+        if (y > -0.45 && y < -0.15 && Math.abs(x) < 0.28) {
+          mouthIndices.push(i);
+        }
+      }
+      frontGeo.computeVertexNormals();
+
+      // Front Face Mesh (100% visible, bright, crystal-clear user photo!)
+      const frontMat = new THREE.MeshStandardMaterial({
+        map: texture,
+        roughness: 0.35,
+        metalness: 0.02,
+        emissive: 0xffffff,
+        emissiveIntensity: 0.05,
+        side: THREE.DoubleSide,
+      });
+      const frontMesh = new THREE.Mesh(frontGeo, frontMat);
+      frontMesh.name = "frontFaceMesh";
+      frontMesh.position.set(0, 0, 0.02);
+      characterGroup.add(frontMesh);
+
+      // 2. Volumetric Back Shell for complete 360° rotation
+      const backGeo = frontGeo.clone();
+      const backPos = backGeo.attributes.position;
+      for (let i = 0; i < backPos.count; i++) {
+        backPos.setZ(i, -Math.abs(backPos.getZ(i)) - 0.04);
+      }
+      backGeo.computeVertexNormals();
+
+      const backMat = new THREE.MeshStandardMaterial({
+        color: 0x6366f1,
+        roughness: 0.45,
+        metalness: 0.1,
+        emissive: 0x312e81,
+        emissiveIntensity: 0.2,
+        side: THREE.BackSide,
+      });
+      const backMesh = new THREE.Mesh(backGeo, backMat);
+      backMesh.name = "backHullMesh";
+      characterGroup.add(backMesh);
+
+      // 3. Glowing Golden Outer Halo Ring
+      const ringGeo = new THREE.TorusGeometry(1.22, 0.012, 16, 64);
+      ringGeo.scale(1.0, 1.18, 1.0);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0xfef08a,
+        transparent: true,
+        opacity: 0.75,
+        blending: THREE.AdditiveBlending,
+      });
+      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+      ringMesh.position.set(0, 0, 0);
+      characterGroup.add(ringMesh);
+
+      setLoading(false);
+      onModelReady?.();
     };
 
     if (photoUrl) {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        const result = Img2ThreejsConverter.reconstructCharacterFromImage(img, personaName);
-        characterGroup.add(result.model);
-        headPosAttr = result.headPosAttr;
-        originalHeadPositions = result.originalHeadPositions;
-        mouthIndices.push(...result.mouthIndices);
-        setLoading(false);
-        onModelReady?.();
-      };
-      img.onerror = () => {
-        buildFallback3DCharacter(personaName, gradientStart, gradientEnd);
-      };
-      img.src = photoUrl;
+      new THREE.TextureLoader().load(
+        photoUrl,
+        (tex) => {
+          build3DHumanModel(tex);
+        },
+        undefined,
+        () => {
+          const fallbackTex = createFallbackCanvasTexture(personaName, gradientStart, gradientEnd);
+          build3DHumanModel(fallbackTex);
+        }
+      );
     } else {
-      buildFallback3DCharacter(personaName, gradientStart, gradientEnd);
+      const defaultTex = createFallbackCanvasTexture(personaName, gradientStart, gradientEnd);
+      build3DHumanModel(defaultTex);
     }
 
     // =========================================================================
@@ -373,7 +447,7 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
       characterGroup.rotation.x = orbitRotX;
 
       // Gentle levitation float
-      characterGroup.position.y = 0.22 + Math.sin(elapsed * 2.2) * 0.025;
+      characterGroup.position.y = 0.05 + Math.sin(elapsed * 2.2) * 0.025;
       topGlowGroup.position.y = 0.45 + Math.sin(elapsed * 2.2) * 0.025;
 
       // Rotating top orbital rings
