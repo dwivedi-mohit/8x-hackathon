@@ -1,11 +1,13 @@
 import React from "react";
 import { tokens } from "../styles/tokens.js";
+import heavenlyBackground from "../assets/heavenly-background.png";
 
 type MobileContainerProps = {
   children: React.ReactNode;
+  bottomNavigation?: React.ReactNode;
 };
 
-export const MobileContainer: React.FC<MobileContainerProps> = ({ children }) => {
+export const MobileContainer: React.FC<MobileContainerProps> = ({ children, bottomNavigation }) => {
   return (
     <div
       style={{
@@ -13,7 +15,7 @@ export const MobileContainer: React.FC<MobileContainerProps> = ({ children }) =>
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#F2EDE4",
+        background: "#F7EEE9",
         padding: "0",
       }}
     >
@@ -23,7 +25,10 @@ export const MobileContainer: React.FC<MobileContainerProps> = ({ children }) =>
           maxWidth: tokens.dimensions.mobileWidth,
           minHeight: "100vh",
           maxHeight: "100vh",
-          backgroundColor: tokens.colors.canvas,
+          backgroundImage: `linear-gradient(180deg, rgba(255, 254, 251, 0.38) 0%, rgba(255, 252, 248, 0.16) 48%, rgba(255, 250, 246, 0.38) 100%), url(${heavenlyBackground})`,
+          backgroundPosition: "center",
+          backgroundSize: "cover",
+          backgroundAttachment: "fixed",
           display: "flex",
           flexDirection: "column",
           position: "relative",
@@ -34,7 +39,10 @@ export const MobileContainer: React.FC<MobileContainerProps> = ({ children }) =>
           borderRight: `1px solid ${tokens.colors.borderSubtle}`,
         }}
       >
-        {children}
+        <div style={{ minHeight: "100%", display: "flex", flexDirection: "column", paddingBottom: bottomNavigation ? "112px" : 0 }}>
+          {children}
+        </div>
+        {bottomNavigation}
       </main>
     </div>
   );

@@ -25,6 +25,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         justifyContent: "space-between",
         borderBottom: `1px solid ${tokens.colors.borderSubtle}`,
         backgroundColor: tokens.colors.surface,
+        backdropFilter: "blur(18px) saturate(150%)",
+        WebkitBackdropFilter: "blur(18px) saturate(150%)",
         position: "sticky",
         top: 0,
         zIndex: 10,

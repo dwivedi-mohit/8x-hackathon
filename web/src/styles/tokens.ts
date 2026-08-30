@@ -6,21 +6,21 @@
 export const tokens = {
   colors: {
     // Canvas & Surfaces (Warm Light Off-White)
-    canvas: "#FAF8F5",
-    canvasMuted: "#F3EFEA",
-    surface: "#FFFFFF",
-    surfaceRaised: "#FCFAF7",
-    surfaceHover: "#F7F3EE",
-    surfaceSubtle: "#F4EFEB",
-    surfaceLavenderTint: "#F4F0FD",
-    surfacePeachTint: "#FFF5ED",
+    canvas: "rgba(255, 251, 248, 0.20)",
+    canvasMuted: "rgba(255, 255, 255, 0.34)",
+    surface: "rgba(255, 255, 255, 0.42)",
+    surfaceRaised: "rgba(255, 255, 255, 0.50)",
+    surfaceHover: "rgba(255, 255, 255, 0.58)",
+    surfaceSubtle: "rgba(255, 255, 255, 0.28)",
+    surfaceLavenderTint: "rgba(238, 229, 255, 0.42)",
+    surfacePeachTint: "rgba(255, 239, 225, 0.44)",
 
     // Borders & Dividers
-    border: "#EBE5DC",
-    borderSubtle: "#F0ECE6",
-    borderStrong: "#D8D0C5",
-    borderLavender: "#DDD6FE",
-    borderPeach: "#FED7AA",
+    border: "rgba(255, 255, 255, 0.68)",
+    borderSubtle: "rgba(255, 255, 255, 0.46)",
+    borderStrong: "rgba(201, 185, 219, 0.56)",
+    borderLavender: "rgba(221, 214, 254, 0.74)",
+    borderPeach: "rgba(254, 215, 170, 0.76)",
 
     // Typography
     textPrimary: "#1F1D2B",
@@ -29,16 +29,16 @@ export const tokens = {
     textInverse: "#FFFFFF",
 
     // Primary Accents (Lavender / Violet)
-    lavenderPrimary: "#7C3AED",
-    lavenderHover: "#6D28D9",
+    lavenderPrimary: "rgba(100, 65, 211, 0.80)",
+    lavenderHover: "rgba(86, 49, 190, 0.88)",
     lavenderLight: "#A78BFA",
     lavenderSoft: "#DDD6FE",
     lavenderSubtle: "#EDE9FE",
 
     // Secondary Accents (Peach / Amber Warmth)
-    peachPrimary: "#F97316",
-    peachHover: "#EA580C",
-    peachWarm: "#F4A261",
+    peachPrimary: "rgba(224, 103, 43, 0.82)",
+    peachHover: "rgba(205, 79, 25, 0.90)",
+    peachWarm: "rgba(236, 137, 82, 0.74)",
     peachLight: "#FED7AA",
     peachSubtle: "#FFEDD5",
 
@@ -59,8 +59,8 @@ export const tokens = {
     statusEndedBg: "#F3F4F6",
 
     // Destructive
-    destructive: "#EF4444",
-    destructiveHover: "#DC2626",
+    destructive: "rgba(218, 61, 72, 0.80)",
+    destructiveHover: "rgba(201, 43, 54, 0.90)",
     destructiveBg: "#FEE2E2",
   },
 
@@ -134,10 +134,10 @@ export const tokens = {
   },
 
   shadows: {
-    subtle: "0 1px 3px rgba(31, 29, 43, 0.04), 0 1px 2px rgba(31, 29, 43, 0.02)",
-    card: "0 4px 16px rgba(31, 29, 43, 0.05), 0 1px 4px rgba(31, 29, 43, 0.03)",
-    cardHover: "0 8px 24px rgba(124, 58, 237, 0.08), 0 2px 6px rgba(31, 29, 43, 0.04)",
-    elevated: "0 12px 32px rgba(31, 29, 43, 0.08), 0 4px 12px rgba(31, 29, 43, 0.04)",
+    subtle: "0 3px 12px rgba(91, 74, 117, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.55)",
+    card: "0 10px 28px rgba(104, 79, 135, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.65)",
+    cardHover: "0 14px 34px rgba(124, 58, 237, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.70)",
+    elevated: "0 16px 40px rgba(104, 79, 135, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.70)",
     glowLavender: "0 0 32px rgba(167, 139, 250, 0.35)",
     glowPeach: "0 0 32px rgba(244, 162, 97, 0.35)",
     glowGreen: "0 0 28px rgba(16, 185, 129, 0.3)",

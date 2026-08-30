@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import type { PersonaId, AppScreen } from "../types/index.js";
 import { MobileContainer } from "../components/MobileContainer.js";
+import { BottomNavigation } from "../components/BottomNavigation.js";
 import { HomeScreen } from "../features/home/HomeScreen.js";
 import { PersonaDetailScreen } from "../features/detail/PersonaDetailScreen.js";
 import { LiveCallScreen } from "../features/call/LiveCallScreen.js";
 import { EndedCallScreen } from "../features/ended/EndedCallScreen.js";
 import { CreatePersonaScreen } from "../features/create/CreatePersonaScreen.js";
+import { CallHistoryScreen } from "../features/history/CallHistoryScreen.js";
 import { getPersonaById } from "../features/persona/personasData.js";
 import { useRealtimeCall } from "../hooks/useRealtimeCall.js";
 import "../styles/theme.css";
@@ -14,6 +16,7 @@ export const App: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>("home");
   const [selectedPersonaId, setSelectedPersonaId] = useState<PersonaId>("maya");
   const [callDurationSeconds, setCallDurationSeconds] = useState<number>(0);
+  const [lastCall, setLastCall] = useState<{ personaId: PersonaId; durationSeconds: number }>();
   const callController = useRealtimeCall();
   const demoMode = import.meta.env.VITE_DEMO_MODE === "true";
 
@@ -35,6 +38,9 @@ export const App: React.FC = () => {
   const handleCallEnded = () => {
     // Transition to ended screen
     setCallDurationSeconds(callController.elapsedSeconds);
+    const durationSeconds = callController.elapsedSeconds;
+    setCallDurationSeconds(durationSeconds);
+    setLastCall({ personaId: selectedPersonaId, durationSeconds });
     setCurrentScreen("ended");
   };
 
@@ -46,10 +52,22 @@ export const App: React.FC = () => {
     setCurrentScreen("create-persona");
   };
 
+  const dockActive = currentScreen === "create-persona" ? "create" : currentScreen === "call-history" ? "history" : "home";
+  const showBottomNavigation = currentScreen !== "call";
+
   const selectedPersona = getPersonaById(selectedPersonaId);
 
   return (
-    <MobileContainer>
+    <MobileContainer
+      bottomNavigation={showBottomNavigation ? (
+        <BottomNavigation
+          active={dockActive}
+          onHome={handleGoHome}
+          onCreate={handleCreatePersona}
+          onHistory={() => setCurrentScreen("call-history")}
+        />
+      ) : undefined}
+    >
       {currentScreen === "home" && (
         <HomeScreen
           onSelectPersona={handleSelectPersona}
@@ -91,6 +109,8 @@ export const App: React.FC = () => {
           onCreated={handleGoHome}
         />
       )}
+
+      {currentScreen === "call-history" && <CallHistoryScreen lastCall={lastCall} />}
     </MobileContainer>
   );
 };

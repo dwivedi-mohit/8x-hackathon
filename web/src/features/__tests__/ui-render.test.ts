@@ -35,10 +35,11 @@ describe("Project Echo UI Layer", () => {
     expect(luna.name).toBe("Luna");
   });
 
-  it("verifies design tokens define light warm off-white canvas and lavender/peach accents", () => {
-    expect(tokens.colors.canvas).toBe("#FAF8F5");
-    expect(tokens.colors.lavenderPrimary).toBe("#7C3AED");
-    expect(tokens.colors.peachWarm).toBe("#F4A261");
+  it("verifies design tokens define translucent liquid-glass surfaces with lavender/peach accents", () => {
+    expect(tokens.colors.canvas).toContain("rgba");
+    expect(tokens.colors.surface).toContain("rgba");
+    expect(tokens.colors.lavenderPrimary).toContain("rgba");
+    expect(tokens.colors.peachWarm).toContain("rgba");
     expect(tokens.dimensions.mobileWidth).toBe("390px");
     expect(tokens.dimensions.minTouchTarget).toBe("44px");
   });

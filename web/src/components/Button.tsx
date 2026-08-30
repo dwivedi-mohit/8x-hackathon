@@ -111,6 +111,8 @@ export const Button: React.FC<ButtonProps> = ({
         cursor: disabled ? "not-allowed" : "pointer",
         transition: "all 0.18s ease-in-out",
         userSelect: "none",
+        backdropFilter: "blur(18px) saturate(150%)",
+        WebkitBackdropFilter: "blur(18px) saturate(150%)",
         ...getVariantStyles(),
         ...style,
       }}

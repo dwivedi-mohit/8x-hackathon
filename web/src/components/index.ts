@@ -1,5 +1,6 @@
 export * from "./MobileContainer.js";
 export * from "./AppHeader.js";
+export * from "./BottomNavigation.js";
 export * from "./SafetyDisclosure.js";
 export * from "./Button.js";
 export * from "./StatusBadge.js";

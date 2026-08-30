@@ -78,6 +78,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 border: `1.5px solid ${tokens.colors.border}`,
                 padding: tokens.spacing.lg,
                 boxShadow: tokens.shadows.card,
+                backdropFilter: "blur(18px) saturate(145%)",
+                WebkitBackdropFilter: "blur(18px) saturate(145%)",
                 display: "flex",
                 flexDirection: "column",
                 gap: tokens.spacing.md,
@@ -193,6 +195,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             alignItems: "center",
             gap: tokens.spacing.md,
             cursor: "pointer",
+            backdropFilter: "blur(18px) saturate(145%)",
+            WebkitBackdropFilter: "blur(18px) saturate(145%)",
             marginTop: tokens.spacing.xs,
           }}
         >

@@ -5,7 +5,8 @@ export type AppScreen =
   | "persona-detail"
   | "call"
   | "ended"
-  | "create-persona";
+  | "create-persona"
+  | "call-history";
 
 export type NavigationState = {
   currentScreen: AppScreen;
