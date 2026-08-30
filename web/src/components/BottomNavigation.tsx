@@ -85,7 +85,26 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({ active, onHo
       </button>
 
       <button type="button" aria-current={active === "home" ? "page" : undefined} aria-label="Home" onClick={onHome} style={itemStyle("home")}>
-        <HomeIcon />
+        <span
+          style={{
+            width: "58px",
+            height: "58px",
+            marginTop: "-38px",
+            marginBottom: "-2px",
+            borderRadius: "50%",
+            border: "5px solid rgba(255, 255, 255, 0.82)",
+            background: active === "home" ? "rgba(100, 65, 211, 0.84)" : "rgba(255, 255, 255, 0.48)",
+            color: active === "home" ? tokens.colors.textInverse : tokens.colors.textTertiary,
+            boxShadow: active === "home" ? tokens.shadows.glowLavender : tokens.shadows.subtle,
+            backdropFilter: "blur(18px) saturate(150%)",
+            WebkitBackdropFilter: "blur(18px) saturate(150%)",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <HomeIcon />
+        </span>
         <span>Home</span>
       </button>
 
