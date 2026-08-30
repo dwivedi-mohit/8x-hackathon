@@ -5,6 +5,7 @@ const ICE_GATHERING_TIMEOUT_MS = 5000;
 const RECONNECT_BASE_DELAY_MS = 1000;
 const RECONNECT_MAX_DELAY_MS = 8000;
 const MAX_RECONNECT_ATTEMPTS = 5;
+const HEALTH_CHECK_INTERVAL_MS = 5000;
 
 type CallServiceCallbacks = {
   onStatusChange: (status: CallStatus) => void;
@@ -25,6 +26,7 @@ export class RealtimeCallService {
   private lastPersonaId: PersonaId | null = null;
   private connecting = false;
   private reconnectAttempts = 0;
+  private healthCheckInterval: ReturnType<typeof setInterval> | null = null;
 
   private callbacks: CallServiceCallbacks;
 
@@ -191,6 +193,7 @@ export class RealtimeCallService {
     this.reconnectAttempts = 0;
     this.setStatus("listening");
     this.startElapsedTimer();
+    this.startHealthCheck();
   }
 
   private setupDataChannel(channel: RTCDataChannel): void {
@@ -246,12 +249,39 @@ export class RealtimeCallService {
     this.setErrorMessage(message);
   }
 
+  private startHealthCheck(): void {
+    this.stopHealthCheck();
+    this.healthCheckInterval = setInterval(() => {
+      if (!this.pc || this.status === "ended" || this.status === "error") {
+        this.stopHealthCheck();
+        return;
+      }
+
+      const state = this.pc.iceConnectionState;
+      if (state === "failed" || state === "closed") {
+        this.stopHealthCheck();
+        this.setStatus("reconnecting");
+        this.scheduleReconnect();
+      }
+    }, HEALTH_CHECK_INTERVAL_MS);
+  }
+
+  private stopHealthCheck(): void {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
+    }
+  }
+
   private cleanup(): void {
     // Stop reconnect timer
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
+
+    // Stop health check
+    this.stopHealthCheck();
 
     // Stop elapsed timer
     this.stopElapsedTimer();
