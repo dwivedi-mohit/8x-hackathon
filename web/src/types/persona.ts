@@ -17,6 +17,10 @@ export type Persona = {
     ring: string;
   };
   disclosure: string;
+  /** Ready Player Me GLB URL for 3D avatar */
+  glbUrl: string;
+  /** ElevenLabs voice ID for this persona */
+  elevenLabsVoiceId: string;
 };
 
 export type CustomPersonaDraft = {

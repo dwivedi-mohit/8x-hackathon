@@ -115,6 +115,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   animation: listeningGlow 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+@keyframes avatarPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.02); opacity: 0.95; }
+}
+
 /* Reduced motion overrides */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

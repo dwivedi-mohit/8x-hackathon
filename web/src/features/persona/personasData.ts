@@ -9,7 +9,7 @@ export const preparedPersonas: Persona[] = [
       "A gentle companion who helps you slow down, breathe, and untangle overwhelming thoughts one manageable step at a time.",
     voiceStyle: "Soft, steady, soothing, and unhurried",
     suggestedPrompt:
-      "I’ve had an overwhelming week and my head won't stop racing. Where do I even begin?",
+      "I've had an overwhelming week and my head won't stop racing. Where do I even begin?",
     traits: ["Calm", "Reflective", "Grounding", "Patient"],
     avatarGradient: {
       start: "#A78BFA",
@@ -19,6 +19,9 @@ export const preparedPersonas: Persona[] = [
     },
     disclosure:
       "Maya is a fictional AI character created to offer comforting conversation. Not a real person, therapist, or emergency service.",
+    glbUrl:
+      "https://models.readyplayer.me/64bfa15f0e72c63d7c3934f3.glb",
+    elevenLabsVoiceId: "maya-voice-id",
   },
   {
     id: "arjun",
@@ -28,7 +31,7 @@ export const preparedPersonas: Persona[] = [
       "A clear-headed sounding board who asks the right clarifying question and helps you explore practical options with honest perspective.",
     voiceStyle: "Crisp, warm, thoughtful, and confident",
     suggestedPrompt:
-      "I’m stuck between two choices and can’t decide which path to take first.",
+      "I'm stuck between two choices and can't decide which path to take first.",
     traits: ["Practical", "Direct", "Insightful", "Balanced"],
     avatarGradient: {
       start: "#F4A261",
@@ -38,6 +41,9 @@ export const preparedPersonas: Persona[] = [
     },
     disclosure:
       "Arjun is a fictional AI character created to offer practical sounding-board conversation. Not a real person, coach, or advisor.",
+    glbUrl:
+      "https://models.readyplayer.me/64bfa15f0e72c63d7c3934f4.glb",
+    elevenLabsVoiceId: "arjun-voice-id",
   },
   {
     id: "luna",
@@ -47,7 +53,7 @@ export const preparedPersonas: Persona[] = [
       "An empathetic listener who finds gentle re-framings in difficult moments and offers quiet optimism when things feel heavy.",
     voiceStyle: "Melodic, empathetic, gentle, and reflective",
     suggestedPrompt:
-      "I feel like I’m being way too hard on myself today.",
+      "I feel like I'm being way too hard on myself today.",
     traits: ["Poetic", "Empathetic", "Gentle", "Hopeful"],
     avatarGradient: {
       start: "#818CF8",
@@ -57,6 +63,9 @@ export const preparedPersonas: Persona[] = [
     },
     disclosure:
       "Luna is a fictional AI character created to offer poetic and hopeful conversation. Not a real person, therapist, or medical service.",
+    glbUrl:
+      "https://models.readyplayer.me/64bfa15f0e72c63d7c3934f5.glb",
+    elevenLabsVoiceId: "luna-voice-id",
   },
 ];
 

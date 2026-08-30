@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react";
 import type { CallUiProps, CallStatus } from "../../types/call.js";
 import { getPersonaById } from "../persona/personasData.js";
-import { PersonaAvatar } from "../../components/PersonaAvatar.js";
+import { TalkingAvatar3D } from "../../components/TalkingAvatar3D.js";
 import { StatusBadge } from "../../components/StatusBadge.js";
 import { CallVisualizer } from "../../components/CallVisualizer.js";
 import { TimerDisplay } from "../../components/TimerDisplay.js";
 import { CallControls } from "../../components/CallControls.js";
-import { SafetyDisclosure } from "../../components/SafetyDisclosure.js";
 import { tokens } from "../../styles/tokens.js";
 
 export const LiveCallScreen: React.FC<CallUiProps> = ({
@@ -22,6 +21,7 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
   const [internalMuted, setInternalMuted] = useState<boolean>(false);
   const [internalSeconds, setInternalSeconds] = useState<number>(0);
   const [internalError, setInternalError] = useState<string | undefined>(undefined);
+  const [audioLevel, setAudioLevel] = useState<number>(0);
 
   // Use controller if provided, otherwise fallback to internal state
   const status = controller ? controller.status : internalStatus;
@@ -39,6 +39,21 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
       }, 1000);
       return () => clearInterval(interval);
     }
+  }, [status, controller]);
+
+  // Simulate audio levels for lip-sync in mock mode
+  useEffect(() => {
+    if (controller || status !== "speaking") {
+      setAudioLevel(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      // Random audio level between 0.3 and 1.0 for speaking
+      setAudioLevel(0.3 + Math.random() * 0.7);
+    }, 100); // Update every 100ms for smooth animation
+
+    return () => clearInterval(interval);
   }, [status, controller]);
 
   const handleToggleMute = () => {
@@ -190,11 +205,12 @@ export const LiveCallScreen: React.FC<CallUiProps> = ({
             margin: "auto 0",
           }}
         >
-          <PersonaAvatar
-            persona={persona}
-            size="call"
+          <TalkingAvatar3D
+            glbUrl={persona.glbUrl}
             isSpeaking={status === "speaking"}
             isListening={status === "listening"}
+            size={280}
+            audioLevel={audioLevel}
           />
 
           <h2
