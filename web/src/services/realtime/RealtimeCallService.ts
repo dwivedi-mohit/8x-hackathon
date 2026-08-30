@@ -7,6 +7,16 @@ const RECONNECT_MAX_DELAY_MS = 8000;
 const MAX_RECONNECT_ATTEMPTS = 5;
 const HEALTH_CHECK_INTERVAL_MS = 5000;
 
+const ErrorCode = {
+  MIC_DENIED: "mic-denied",
+  NETWORK_ERROR: "network-error",
+  SERVER_ERROR: "server-error",
+  INVALID_RESPONSE: "invalid-response",
+  OFFER_FAILED: "offer-failed",
+  CONNECTION_FAILED: "connection-failed",
+  MAX_RECONNECT: "max-reconnect",
+} as const;
+
 type CallServiceCallbacks = {
   onStatusChange: (status: CallStatus) => void;
   onErrorMessage: (message: string | undefined) => void;
@@ -97,7 +107,7 @@ export class RealtimeCallService {
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
-      throw new CallError("Microphone access denied. Enable it in Settings.", "mic-denied");
+      throw new CallError("Microphone access denied. Enable it in Settings.", ErrorCode.MIC_DENIED);
     }
     this.localStream = localStream;
 
@@ -147,7 +157,7 @@ export class RealtimeCallService {
         this.callbacks.onQualityChange("unknown");
         if (this.status !== "ended" && this.status !== "error") {
           if (this.status === "connecting") {
-            this.handleError(new CallError("Connection failed.", "connection-failed"));
+            this.handleError(new CallError("Connection failed.", ErrorCode.CONNECTION_FAILED));
           } else {
             this.setStatus("reconnecting");
             this.scheduleReconnect();
@@ -170,7 +180,7 @@ export class RealtimeCallService {
 
     const sdp = pc.localDescription?.sdp;
     if (!sdp) {
-      throw new CallError("Failed to create offer.", "offer-failed");
+      throw new CallError("Failed to create offer.", ErrorCode.OFFER_FAILED);
     }
 
     // 9. Exchange SDP with backend
@@ -183,17 +193,17 @@ export class RealtimeCallService {
       });
 
       if (!res.ok) {
-        throw new CallError(`Server returned ${res.status}`, "server-error");
+        throw new CallError(`Server returned ${res.status}`, ErrorCode.SERVER_ERROR);
       }
 
       response = await res.json();
     } catch (err) {
       if (err instanceof CallError) throw err;
-      throw new CallError("Network error. Check your connection.", "network-error");
+      throw new CallError("Network error. Check your connection.", ErrorCode.NETWORK_ERROR);
     }
 
     if (!response.sdp) {
-      throw new CallError("Invalid server response.", "invalid-response");
+      throw new CallError("Invalid server response.", ErrorCode.INVALID_RESPONSE);
     }
 
     // 10. Set remote answer
@@ -345,7 +355,7 @@ export class RealtimeCallService {
   private scheduleReconnect(): void {
     if (this.reconnectTimeout) return;
     if (this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-      this.handleError(new CallError("Connection lost. Tap retry to reconnect.", "max-reconnect"));
+      this.handleError(new CallError("Connection lost. Tap retry to reconnect.", ErrorCode.MAX_RECONNECT));
       return;
     }
 
