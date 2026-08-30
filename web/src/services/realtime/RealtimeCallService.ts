@@ -168,7 +168,11 @@ export class RealtimeCallService {
       });
 
       if (!res.ok) {
-        throw new CallError(`Server returned ${res.status}`, "server-error");
+        const errorBody = await res.json().catch(() => null) as { error?: string } | null;
+        throw new CallError(
+          errorBody?.error ?? `Unable to start the voice call (server ${res.status}).`,
+          "server-error",
+        );
       }
 
       response = await res.json();

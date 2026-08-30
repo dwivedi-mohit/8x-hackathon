@@ -30,6 +30,18 @@ app.use(
   realtimeRouter,
 );
 
+app.use((error: unknown, _request: express.Request, response: express.Response, _next: express.NextFunction) => {
+  if (error instanceof SyntaxError && "body" in error) {
+    response.status(400).json({ error: "Invalid JSON request body." });
+    return;
+  }
+
+  console.error("Unhandled server error.", {
+    message: error instanceof Error ? error.message : "Unknown error",
+  });
+  response.status(500).json({ error: "Unexpected server error." });
+});
+
 app.use((_request, response) => {
   response.status(404).json({ error: "Route not found." });
 });
