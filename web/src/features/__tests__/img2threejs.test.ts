@@ -4,7 +4,7 @@ import { Img2ThreejsConverter } from "../../lib/3d/Img2ThreejsEngine.js";
 import { VoiceboxService } from "../../services/voice/VoiceboxService.js";
 
 describe("img2threejs & Voicebox Real Engine Verification", () => {
-  it("verifies Img2ThreejsConverter reconstructs complete procedural 3D character hierarchy", () => {
+  it("verifies Img2ThreejsConverter reconstructs realistic 3D anatomical human head bust", () => {
     // Mock image object
     const img = {} as HTMLImageElement;
 
@@ -14,12 +14,9 @@ describe("img2threejs & Voicebox Real Engine Verification", () => {
     expect(result.model).toBeInstanceOf(THREE.Group);
     expect(result.model.name).toBe("Character_Dada Ji");
 
-    // Check anatomical hierarchy
-    const headGroup = result.model.getObjectByName("headGroup");
-    expect(headGroup).toBeDefined();
-
-    const headwearGroup = headGroup?.getObjectByName("headwearGroup");
-    expect(headwearGroup).toBeDefined();
+    // Check anatomical head bust mesh
+    const headMesh = result.model.getObjectByName("anatomicalHeadBust");
+    expect(headMesh).toBeDefined();
 
     // 2. Verify mouth viseme tracking indices exist
     expect(result.mouthIndices).toBeDefined();
@@ -30,7 +27,7 @@ describe("img2threejs & Voicebox Real Engine Verification", () => {
     expect(result.originalHeadPositions.length).toBeGreaterThan(0);
 
     // 4. Verify materials generated
-    expect(result.materials.length).toBeGreaterThanOrEqual(5);
+    expect(result.materials.length).toBeGreaterThanOrEqual(2);
   });
 
   it("verifies VoiceboxService acoustic voice cloning profile", async () => {

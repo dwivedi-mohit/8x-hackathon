@@ -51,8 +51,8 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0xfff8f0, 0.05);
 
-    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
-    camera.position.set(0, 0.18, 3.6);
+    const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
+    camera.position.set(0, 0.02, 3.2);
 
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
@@ -159,37 +159,37 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
     floorHUD.add(coreFlare);
 
     // Light-Golden Inverted Triangle Grid Beam
-    const coneWireGeo = new THREE.CylinderGeometry(0.95, 0.16, 0.72, 18, 6, true);
+    const coneWireGeo = new THREE.CylinderGeometry(0.85, 0.16, 0.45, 18, 4, true);
     const coneWireMat = new THREE.MeshBasicMaterial({
       color: 0xfef08a,
       wireframe: true,
       transparent: true,
-      opacity: 0.42,
+      opacity: 0.35,
       blending: THREE.AdditiveBlending,
     });
     const invertedTriangleGrid = new THREE.LineSegments(coneWireGeo, coneWireMat);
-    invertedTriangleGrid.position.set(0, -0.68, 0);
+    invertedTriangleGrid.position.set(0, -0.92, 0);
     holoField.add(invertedTriangleGrid);
 
     // Soft Volumetric Inner Beam
     const beamMesh = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.92, 0.14, 0.72, 32, 1, true),
+      new THREE.CylinderGeometry(0.82, 0.14, 0.45, 32, 1, true),
       new THREE.MeshBasicMaterial({
         color: 0xfde047,
         transparent: true,
-        opacity: 0.1,
+        opacity: 0.08,
         blending: THREE.AdditiveBlending,
         side: THREE.DoubleSide,
       })
     );
-    beamMesh.position.set(0, -0.68, 0);
+    beamMesh.position.set(0, -0.92, 0);
     holoField.add(beamMesh);
 
     // =========================================================================
     // 3. img2threejs Procedural 3D Character Model Mount
     // =========================================================================
     const characterGroup = new THREE.Group();
-    characterGroup.position.set(0, 0.22, 0);
+    characterGroup.position.set(0, 0.06, 0);
     holoField.add(characterGroup);
 
     let headPosAttr: THREE.BufferAttribute | null = null;
